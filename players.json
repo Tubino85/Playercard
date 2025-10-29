@@ -1,0 +1,544 @@
+{
+  "playersById": {
+    "1.0": {
+      "id": "1.0",
+      "name": "Noah Moreau",
+      "ATK": 0,
+      "BLK": 1,
+      "DEF": 1,
+      "SET": 3,
+      "SERV": 2
+    },
+    "2.0": {
+      "id": "2.0",
+      "name": "Paolo Caruso",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 1,
+      "SET": 3,
+      "SERV": 3
+    },
+    "3.0": {
+      "id": "3.0",
+      "name": "Brian Anderson",
+      "ATK": 0,
+      "BLK": 1,
+      "DEF": 1,
+      "SET": 2,
+      "SERV": 2
+    },
+    "4.0": {
+      "id": "4.0",
+      "name": "Riccardo González",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 1,
+      "SET": 2,
+      "SERV": 2
+    },
+    "5.0": {
+      "id": "5.0",
+      "name": "Andrei Gallo",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 1,
+      "SET": 2,
+      "SERV": 2
+    },
+    "6.0": {
+      "id": "6.0",
+      "name": "Jason García",
+      "ATK": 1,
+      "BLK": 0,
+      "DEF": 1,
+      "SET": 3,
+      "SERV": 2
+    },
+    "7.0": {
+      "id": "7.0",
+      "name": "Filippo Petit",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 1,
+      "SET": 3,
+      "SERV": 3
+    },
+    "8.0": {
+      "id": "8.0",
+      "name": "Tommaso Moretti",
+      "ATK": 1,
+      "BLK": 0,
+      "DEF": 1,
+      "SET": 3,
+      "SERV": 2
+    },
+    "9.0": {
+      "id": "9.0",
+      "name": "Ibrahim Martin",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 1,
+      "SET": 3,
+      "SERV": 2
+    },
+    "10.0": {
+      "id": "10.0",
+      "name": "Adam Miller",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 1,
+      "SET": 3,
+      "SERV": 2
+    },
+    "11.0": {
+      "id": "11.0",
+      "name": "Alex Grassi",
+      "ATK": 1,
+      "BLK": 0,
+      "DEF": 3,
+      "SET": 1,
+      "SERV": 1
+    },
+    "12.0": {
+      "id": "12.0",
+      "name": "Gabriele Torres",
+      "ATK": 1,
+      "BLK": 0,
+      "DEF": 2,
+      "SET": 0,
+      "SERV": 1
+    },
+    "13.0": {
+      "id": "13.0",
+      "name": "Michele López",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 3,
+      "SET": 0,
+      "SERV": 1
+    },
+    "14.0": {
+      "id": "14.0",
+      "name": "Daniel Pellegrini",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 3,
+      "SET": 0,
+      "SERV": 2
+    },
+    "15.0": {
+      "id": "15.0",
+      "name": "Anthony Wilson",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 2,
+      "SET": 1,
+      "SERV": 2
+    },
+    "16.0": {
+      "id": "16.0",
+      "name": "Alberto Greco",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 2,
+      "SET": 0,
+      "SERV": 1
+    },
+    "17.0": {
+      "id": "17.0",
+      "name": "Salvatore Johnson",
+      "ATK": 1,
+      "BLK": 0,
+      "DEF": 2,
+      "SET": 0,
+      "SERV": 1
+    },
+    "18.0": {
+      "id": "18.0",
+      "name": "Nicola Conti",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 3,
+      "SET": 1,
+      "SERV": 1
+    },
+    "19.0": {
+      "id": "19.0",
+      "name": "Sergio Ferrari",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 3,
+      "SET": 0,
+      "SERV": 2
+    },
+    "20.0": {
+      "id": "20.0",
+      "name": "Roman Testa",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 2,
+      "SET": 0,
+      "SERV": 1
+    },
+    "21.0": {
+      "id": "21.0",
+      "name": "Edoardo Moreau",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 3,
+      "SET": 0,
+      "SERV": 1
+    },
+    "22.0": {
+      "id": "22.0",
+      "name": "Stefano Caruso",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 3,
+      "SET": 0,
+      "SERV": 0
+    },
+    "23.0": {
+      "id": "23.0",
+      "name": "Simone Anderson",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 3,
+      "SET": 0,
+      "SERV": 0
+    },
+    "24.0": {
+      "id": "24.0",
+      "name": "Michael González",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 2,
+      "SET": 0,
+      "SERV": 0
+    },
+    "25.0": {
+      "id": "25.0",
+      "name": "Carlo Gallo",
+      "ATK": 0,
+      "BLK": 0,
+      "DEF": 3,
+      "SET": 0,
+      "SERV": 0
+    },
+    "26.0": {
+      "id": "26.0",
+      "name": "Louis García",
+      "ATK": 2,
+      "BLK": 2,
+      "DEF": 2,
+      "SET": 0,
+      "SERV": 2
+    },
+    "27.0": {
+      "id": "27.0",
+      "name": "Maksim Petit",
+      "ATK": 2,
+      "BLK": 1,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 3
+    },
+    "28.0": {
+      "id": "28.0",
+      "name": "Arthur Moretti",
+      "ATK": 2,
+      "BLK": 1,
+      "DEF": 2,
+      "SET": 0,
+      "SERV": 3
+    },
+    "29.0": {
+      "id": "29.0",
+      "name": "Marco Martin",
+      "ATK": 3,
+      "BLK": 1,
+      "DEF": 2,
+      "SET": 0,
+      "SERV": 2
+    },
+    "30.0": {
+      "id": "30.0",
+      "name": "Kevin Miller",
+      "ATK": 2,
+      "BLK": 1,
+      "DEF": 2,
+      "SET": 0,
+      "SERV": 2
+    },
+    "31.0": {
+      "id": "31.0",
+      "name": "Carlos Grassi",
+      "ATK": 3,
+      "BLK": 1,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 3
+    },
+    "32.0": {
+      "id": "32.0",
+      "name": "Roberto Torres",
+      "ATK": 2,
+      "BLK": 1,
+      "DEF": 2,
+      "SET": 0,
+      "SERV": 3
+    },
+    "33.0": {
+      "id": "33.0",
+      "name": "Diego López",
+      "ATK": 2,
+      "BLK": 1,
+      "DEF": 2,
+      "SET": 0,
+      "SERV": 2
+    },
+    "34.0": {
+      "id": "34.0",
+      "name": "Eric Pellegrini",
+      "ATK": 3,
+      "BLK": 1,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 2
+    },
+    "35.0": {
+      "id": "35.0",
+      "name": "Matteo Wilson",
+      "ATK": 3,
+      "BLK": 0,
+      "DEF": 2,
+      "SET": 0,
+      "SERV": 2
+    },
+    "36.0": {
+      "id": "36.0",
+      "name": "Hugo Greco",
+      "ATK": 2,
+      "BLK": 2,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 2
+    },
+    "37.0": {
+      "id": "37.0",
+      "name": "Mehdi Johnson",
+      "ATK": 2,
+      "BLK": 1,
+      "DEF": 2,
+      "SET": 0,
+      "SERV": 2
+    },
+    "38.0": {
+      "id": "38.0",
+      "name": "Emanuele Conti",
+      "ATK": 3,
+      "BLK": 2,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 2
+    },
+    "39.0": {
+      "id": "39.0",
+      "name": "Luca Ferrari",
+      "ATK": 2,
+      "BLK": 2,
+      "DEF": 2,
+      "SET": 0,
+      "SERV": 2
+    },
+    "40.0": {
+      "id": "40.0",
+      "name": "Javier Testa",
+      "ATK": 2,
+      "BLK": 2,
+      "DEF": 2,
+      "SET": 0,
+      "SERV": 3
+    },
+    "41.0": {
+      "id": "41.0",
+      "name": "Giorgio Moreau",
+      "ATK": 3,
+      "BLK": 1,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 3
+    },
+    "42.0": {
+      "id": "42.0",
+      "name": "Dmytro Caruso",
+      "ATK": 1,
+      "BLK": 1,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 2
+    },
+    "43.0": {
+      "id": "43.0",
+      "name": "Youssef Anderson",
+      "ATK": 3,
+      "BLK": 2,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 3
+    },
+    "44.0": {
+      "id": "44.0",
+      "name": "Miguel González",
+      "ATK": 2,
+      "BLK": 1,
+      "DEF": 2,
+      "SET": 0,
+      "SERV": 3
+    },
+    "45.0": {
+      "id": "45.0",
+      "name": "Federico Gallo",
+      "ATK": 3,
+      "BLK": 2,
+      "DEF": 0,
+      "SET": 0,
+      "SERV": 2
+    },
+    "46.0": {
+      "id": "46.0",
+      "name": "Davide García",
+      "ATK": 2,
+      "BLK": 3,
+      "DEF": 0,
+      "SET": 0,
+      "SERV": 0
+    },
+    "47.0": {
+      "id": "47.0",
+      "name": "Ali Petit",
+      "ATK": 2,
+      "BLK": 2,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 0
+    },
+    "48.0": {
+      "id": "48.0",
+      "name": "Jorge Moretti",
+      "ATK": 2,
+      "BLK": 2,
+      "DEF": 0,
+      "SET": 0,
+      "SERV": 0
+    },
+    "49.0": {
+      "id": "49.0",
+      "name": "Pietro Martin",
+      "ATK": 3,
+      "BLK": 3,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 0
+    },
+    "50.0": {
+      "id": "50.0",
+      "name": "Jonathan Miller",
+      "ATK": 3,
+      "BLK": 2,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 1
+    },
+    "51.0": {
+      "id": "51.0",
+      "name": "David Grassi",
+      "ATK": 2,
+      "BLK": 2,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 0
+    },
+    "52.0": {
+      "id": "52.0",
+      "name": "Samuel Torres",
+      "ATK": 2,
+      "BLK": 3,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 0
+    },
+    "53.0": {
+      "id": "53.0",
+      "name": "Giovanni López",
+      "ATK": 2,
+      "BLK": 3,
+      "DEF": 0,
+      "SET": 0,
+      "SERV": 1
+    },
+    "54.0": {
+      "id": "54.0",
+      "name": "Francesco Pellegrini",
+      "ATK": 2,
+      "BLK": 2,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 0
+    },
+    "55.0": {
+      "id": "55.0",
+      "name": "Omar Wilson",
+      "ATK": 3,
+      "BLK": 3,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 0
+    },
+    "56.0": {
+      "id": "56.0",
+      "name": "Leonardo Greco",
+      "ATK": 2,
+      "BLK": 3,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 1
+    },
+    "57.0": {
+      "id": "57.0",
+      "name": "Pablo Johnson",
+      "ATK": 3,
+      "BLK": 2,
+      "DEF": 0,
+      "SET": 0,
+      "SERV": 0
+    },
+    "58.0": {
+      "id": "58.0",
+      "name": "Alessandro Conti",
+      "ATK": 1,
+      "BLK": 2,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 0
+    },
+    "59.0": {
+      "id": "59.0",
+      "name": "Daniele Ferrari",
+      "ATK": 1,
+      "BLK": 1,
+      "DEF": 1,
+      "SET": 0,
+      "SERV": 0
+    },
+    "60.0": {
+      "id": "60.0",
+      "name": "Andrea Testa",
+      "ATK": 2,
+      "BLK": 3,
+      "DEF": 0,
+      "SET": 0,
+      "SERV": 0
+    }
+  }
+}

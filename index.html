@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Playercard Online — Roster & Rotazioni</title>
+  <style>
+    :root {
+      --bg: #0e0f13;
+      --card: #151821;
+      --muted: #9298a4;
+      --text: #e8ebf1;
+      --accent: #7ee787;
+      --danger: #ff6b6b;
+      --line: #232836;
+      --chip: #1e2230;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+    a { color: var(--accent); text-decoration: none; }
+    .wrap { max-width: 1200px; margin: 28px auto; padding: 0 16px; }
+    header { display:flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    header h1 { font-size: 22px; margin: 0; letter-spacing: 0.3px; }
+    header .chip { background: var(--chip); color: var(--muted); padding: 6px 10px; border-radius: 999px; font-size: 12px; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 1000px){ .grid { grid-template-columns: 1fr; } }
+
+    .card { background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)) , var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+    .card h2 { margin: 0 0 12px; font-size: 16px; font-weight: 600; letter-spacing: 0.2px; }
+    .sub { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+
+    .toolbar { display:flex; gap: 10px; align-items:center; margin-bottom: 12px; }
+    .toolbar input[type="text"], .toolbar select { background: #0b0d13; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px dashed var(--line); padding: 8px 6px; font-size: 13px; text-align: left; }
+    th { color: var(--muted); font-weight: 600; letter-spacing: .2px; font-size: 12px; }
+    tbody tr:hover { background: rgba(255,255,255,.02); }
+
+    .idbox { width: 92px; }
+    .namebox { width: 100%; min-width: 160px; }
+    .stat { width: 58px; text-align: center; background: #0b0d13; border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 8px; font-variant-numeric: tabular-nums; }
+    .idinput { width: 92px; background: #0b0d13; border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 8px; }
+
+    .help { color: var(--muted); font-size: 12px; margin-top: 8px; }
+
+    .rotazioni { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    @media (max-width: 1200px){ .rotazioni { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 780px){ .rotazioni { grid-template-columns: 1fr; } }
+
+    .rot-card { border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 12px; }
+    .rot-head { display:flex; align-items:center; justify-content: space-between; margin-bottom: 8px; }
+    .rot-head h3 { margin: 0; font-size: 14px; }
+    .pos { display:grid; grid-template-columns: 94px 1fr; gap: 10px; align-items: center; margin: 8px 0; }
+    .blockline { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .pill { background: #0b0d13; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display:flex; gap: 8px; align-items:center; justify-content: space-between; }
+    .pill b { font-variant-numeric: tabular-nums; }
+
+    details { margin-top: 14px; }
+    details summary { cursor: pointer; color: var(--muted); }
+    .rules { line-height: 1.55; font-size: 14px; color: #d9dbe2; }
+    .rules h3 { margin: 12px 0 6px; font-size: 15px; }
+    .warn { color: var(--danger); font-size: 12px; }
+
+    .sticky-footer { margin-top: 16px; color: var(--muted); font-size: 12px; display:flex; gap: 12px; align-items:center; }
+    .kbd { border: 1px solid var(--line); background:#0b0d13; padding: 2px 6px; border-radius: 6px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Playercard Online</h1>
+      <span class="chip">Roster & Rotazioni</span>
+      <span class="chip" id="dataStatus">Dati: …</span>
+    </header>
+
+    <div class="grid">
+      <section class="card" id="rosterCard">
+        <h2>Roster</h2>
+        <p class="sub">Scrivi l'ID del giocatore: nome e statistiche si compilano in automatico dalla banca dati (<code>players.json</code>).</p>
+        <div class="toolbar">
+          <button id="addRow" title="Aggiungi riga" style="background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--text);cursor:pointer;">+ Aggiungi riga</button>
+          <button id="clearRoster" title="Svuota roster" style="background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--text);cursor:pointer;">Svuota</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nome</th>
+              <th>ATK</th>
+              <th>BLK</th>
+              <th>DEF</th>
+              <th>SET</th>
+              <th>SERV</th>
+            </tr>
+          </thead>
+          <tbody id="rosterBody"></tbody>
+        </table>
+        <p class="help">Suggerimento: premi <span class="kbd">Invio</span> nell'ID per passare al campo successivo.</p>
+      </section>
+
+      <section class="card">
+        <h2>Rotazioni (6)</h2>
+        <p class="sub">Inserisci l'ID in ciascuna posizione. I blocchi mostrano automaticamente <b>ATK/SET</b> e <b>BLK/DEF/SERV</b>.</p>
+        <div class="rotazioni" id="rotazioni"></div>
+        <details>
+          <summary>Regolamento — bozza compatta</summary>
+          <div class="rules">
+            <h3>Struttura</h3>
+            <ul>
+              <li>Ogni squadra compila il <b>Roster</b> e definisce 6 <b>Rotazioni</b> con gli ID.</li>
+              <li>Le statistiche disponibili per ogni giocatore sono: <b>ATK, BLK, DEF, SET, SERV</b>.</li>
+            </ul>
+            <h3>Risoluzione azioni (D6)</h3>
+            <ul>
+              <li>Per ogni gruppo d'azione (es. Attacco vs Muro/Difesa; Servizio vs Ricezione; Alzata), entrambe le parti tirano <b>1d6</b> e sommano la relativa statistica.</li>
+              <li><b>Attacco</b>: ATK (attaccante) + d6 contro BLK+DEF (avversario) + d6. Maggiore vince lo scambio; pareggio = rigiocata.</li>
+              <li><b>Servizio</b>: SERV (battitore) + d6 contro DEF (ricezione) + d6 → successo = pressione/punto; fallimento = sideout.</li>
+              <li><b>Alzata</b>: SET (alzatore) può dare un bonus situazionale (+1/+2) all'ATK del finalizzatore.</li>
+            </ul>
+            <h3>Rotazioni</h3>
+            <ul>
+              <li>Si gioca alternando l'attivazione tra le squadre. In caso di punto, la squadra al servizio ruota.</li>
+              <li>Le 6 posizioni di ciascuna rotazione devono essere popolate da ID validi.</li>
+            </ul>
+            <p class="warn">Nota: inserisci qui il tuo testo di regolamento integrale quando pronto. Questa è solo una traccia compatta.</p>
+          </div>
+        </details>
+      </section>
+    </div>
+
+    <div class="sticky-footer">
+      <span>Per usare online, carica questo file <em>insieme</em> a <code>players.json</code> nella stessa cartella (GitHub Pages / Netlify / hosting statico).</span>
+    </div>
+  </div>
+
+  <script>
+    // === Stato dati ===
+    let playersById = {}; // popolato da players.json
+    const dataStatusEl = document.getElementById('dataStatus');
+
+    async function loadPlayers() {
+      try {
+        const res = await fetch('players.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if (data && data.playersById) {
+          playersById = data.playersById;
+          dataStatusEl.textContent = `Dati: ${Object.keys(playersById).length} giocatori`;
+        } else {
+          throw new Error('Formato players.json non valido');
+        }
+      } catch (err) {
+        dataStatusEl.textContent = 'Dati: non trovati (carica players.json)';
+        console.error(err);
+      }
+    }
+
+    // === Roster UI ===
+    const rosterBody = document.getElementById('rosterBody');
+    const addRowBtn = document.getElementById('addRow');
+    const clearRosterBtn = document.getElementById('clearRoster');
+
+    function makeRosterRow() {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input class="idinput" type="text" placeholder="ID" /></td>
+        <td class="namebox" data-field="name">—</td>
+        <td><span class="stat" data-field="ATK">0</span></td>
+        <td><span class="stat" data-field="BLK">0</span></td>
+        <td><span class="stat" data-field="DEF">0</span></td>
+        <td><span class="stat" data-field="SET">0</span></td>
+        <td><span class="stat" data-field="SERV">0</span></td>
+      `;
+
+      const idInput = tr.querySelector('.idinput');
+      idInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const next = tr.nextElementSibling?.querySelector('.idinput');
+          if (next) next.focus();
+          fillRosterRow(tr, idInput.value.trim());
+        }
+      });
+      idInput.addEventListener('blur', () => fillRosterRow(tr, idInput.value.trim()));
+      return tr;
+    }
+
+    function fillRosterRow(tr, id) {
+      if (!id) { setRow(tr, null); return; }
+      const p = playersById[id] || null;
+      setRow(tr, p);
+    }
+
+    function setRow(tr, p) {
+      tr.querySelector('[data-field="name"]').textContent = p ? p.name : '—';
+      ['ATK','BLK','DEF','SET','SERV'].forEach(k => {
+        tr.querySelector(`[data-field="${k}"]`).textContent = p ? p[k] : 0;
+      });
+    }
+
+    function addRosterRow() { rosterBody.appendChild(makeRosterRow()); }
+
+    function clearRoster() { rosterBody.innerHTML = ''; for (let i=0;i<12;i++) addRosterRow(); }
+
+    // === Rotazioni ===
+    const rotazioniEl = document.getElementById('rotazioni');
+
+    function makeRotCard(idx) {
+      const card = document.createElement('div');
+      card.className = 'rot-card';
+      card.innerHTML = `
+        <div class="rot-head"><h3>Rotazione ${idx+1}</h3>
+          <button class="mini-clear" title="Svuota" style="background:var(--chip);border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--text);cursor:pointer;font-size:12px;">Svuota</button>
+        </div>
+        <div class="pos">
+          <input class="idinput" type="text" placeholder="ID P1" />
+          <div class="blockline">
+            <div class="pill"><span>ATK/SET</span><b data-as="P1">0/0</b></div>
+            <div class="pill"><span>BLK/DEF/SERV</span><b data-bds="P1">0/0/0</b></div>
+          </div>
+        </div>
+        <div class="pos">
+          <input class="idinput" type="text" placeholder="ID P2" />
+          <div class="blockline">
+            <div class="pill"><span>ATK/SET</span><b data-as="P2">0/0</b></div>
+            <div class="pill"><span>BLK/DEF/SERV</span><b data-bds="P2">0/0/0</b></div>
+          </div>
+        </div>
+        <div class="pos">
+          <input class="idinput" type="text" placeholder="ID P3" />
+          <div class="blockline">
+            <div class="pill"><span>ATK/SET</span><b data-as="P3">0/0</b></div>
+            <div class="pill"><span>BLK/DEF/SERV</span><b data-bds="P3">0/0/0</b></div>
+          </div>
+        </div>
+        <div class="pos">
+          <input class="idinput" type="text" placeholder="ID P4" />
+          <div class="blockline">
+            <div class="pill"><span>ATK/SET</span><b data-as="P4">0/0</b></div>
+            <div class="pill"><span>BLK/DEF/SERV</span><b data-bds="P4">0/0/0</b></div>
+          </div>
+        </div>
+        <div class="pos">
+          <input class="idinput" type="text" placeholder="ID P5" />
+          <div class="blockline">
+            <div class="pill"><span>ATK/SET</span><b data-as="P5">0/0</b></div>
+            <div class="pill"><span>BLK/DEF/SERV</span><b data-bds="P5">0/0/0</b></div>
+          </div>
+        </div>
+        <div class="pos">
+          <input class="idinput" type="text" placeholder="ID P6" />
+          <div class="blockline">
+            <div class="pill"><span>ATK/SET</span><b data-as="P6">0/0</b></div>
+            <div class="pill"><span>BLK/DEF/SERV</span><b data-bds="P6">0/0/0</b></div>
+          </div>
+        </div>
+      `;
+
+      // wire up
+      const inputs = card.querySelectorAll('.idinput');
+      inputs.forEach((inp, i) => {
+        const pos = 'P' + (i+1);
+        inp.addEventListener('input', () => updatePos(card, pos, inp.value.trim()));
+        inp.addEventListener('blur', () => updatePos(card, pos, inp.value.trim()));
+        inp.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const next = inputs[i+1];
+            if (next) next.focus();
+          }
+        });
+      });
+      card.querySelector('.mini-clear').addEventListener('click', () => {
+        inputs.forEach(inp => inp.value = '');
+        ['P1','P2','P3','P4','P5','P6'].forEach(p => renderASBDS(card, p, null));
+      });
+      return card;
+    }
+
+    function updatePos(card, pos, id) {
+      const p = id ? playersById[id] || null : null;
+      renderASBDS(card, pos, p);
+    }
+
+    function renderASBDS(card, pos, p) {
+      const asEl = card.querySelector(`[data-as="${pos}"]`);
+      const bdsEl = card.querySelector(`[data-bds="${pos}"]`);
+      if (!asEl || !bdsEl) return;
+      if (!p) {
+        asEl.textContent = '0/0';
+        bdsEl.textContent = '0/0/0';
+        return;
+      }
+      asEl.textContent = `${p.ATK ?? 0}/${p.SET ?? 0}`;
+      bdsEl.textContent = `${p.BLK ?? 0}/${p.DEF ?? 0}/${p.SERV ?? 0}`;
+    }
+
+    function initRotazioni() {
+      rotazioniEl.innerHTML = '';
+      for (let i=0;i<6;i++) {
+        rotazioniEl.appendChild(makeRotCard(i));
+      }
+    }
+
+    // === Boot ===
+    addRowBtn.addEventListener('click', addRosterRow);
+    clearRosterBtn.addEventListener('click', clearRoster);
+
+    clearRoster();
+    initRotazioni();
+    loadPlayers();
+  </script>
+</body>
+</html>
