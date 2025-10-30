@@ -205,7 +205,6 @@
       }
     }
 
-    const isFile = location.protocol === 'file:';
     const tried = [];
     const candidates = [];
     const qp = getQueryParam('data'); if (qp) candidates.push(qp);
@@ -220,24 +219,23 @@
         tried.push(u.pathname + ' → ' + (r.status||'ERR'));
         if (!r.ok) continue;
 
-        // primo tentativo: JSON puro
-        let raw = null, idx = null, txt = null, parsed = false;
+        // 1) JSON diretto
+        let idx = null, parsed = false;
         try{
-          raw = await r.clone().json();
+          const raw = await r.clone().json();
           idx = buildPlayersIndex(raw);
           parsed = true;
-        }catch(_){ /* passa a smart parse */ }
+        }catch(_){}
 
-        if (!parsed){
-          txt = await r.text();
+        // 2) Testo + smart parse (gestisce const data = {...}; ecc.)
+        if (!parsed || !Object.keys(idx||{}).length){
+          const txt = await r.text();
           if (looksLikeHTML(txt)){
-            setStatus(`Attenzione: ${u.pathname} risponde 200 ma restituisce HTML (non JSON). Verifica percorso/nome del file.`, false);
+            setStatus(`Attenzione: ${u.pathname} risponde 200 ma restituisce HTML (non JSON).`, false);
             continue;
           }
           const alt = smartParseMaybeJSON(txt);
-          if (alt){
-            idx = buildPlayersIndex(alt);
-          }
+          if (alt) idx = buildPlayersIndex(alt);
         }
 
         if (idx && Object.keys(idx).length){
@@ -252,10 +250,8 @@
     }
 
     setStatus(
-      (isFile ? "Sei in file:// (alcuni browser bloccano il fetch). " : "") +
       'Autoload fallito. Tentativi: ' + tried.join(' | ') +
-      '. Verifica che HTML e JSON siano nella stessa cartella, che il nome sia esatto e che l’URL restituisca JSON (non HTML). '+
-      'Prova anche index.html?data=players.json oppure usa "Carica JSON".',
+      '. Verifica che l’URL restituisca JSON valido (non HTML). Puoi usare anche index.html?data=players.json oppure il pulsante "Carica JSON".',
       false
     );
   }
