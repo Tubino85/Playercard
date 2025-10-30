@@ -90,8 +90,9 @@
       </label>
       <input id="jsonUrl" type="text" placeholder="players.json" style="max-width:240px" />
       <button id="loadUrlBtn" class="btn">Carica da URL</button>
+      <button id="demoBtn" class="btn">Dati di prova</button>
       <button id="clearBtn" class="btn">Svuota tutto</button>
-      <span class="hint">Se il file è nella <b>stessa cartella</b> (es. GitHub Pages), basta "players.json". Se apri l'HTML come <code>file://</code>, usa i pulsanti Carica JSON/Excel.</span>
+      <span class="hint">Se il file è nella <b>stessa cartella</b> (es. GitHub Pages), basta "players.json". Se apri l'HTML come <code>file://</code>, usa i pulsanti Carica JSON/Excel.</span>Se il file è nella <b>stessa cartella</b> (es. GitHub Pages), basta "players.json". Se apri l'HTML come <code>file://</code>, usa i pulsanti Carica JSON/Excel.</span>
     </div>
 
     <div class="card">
@@ -144,8 +145,13 @@
     }
     function statOrZero(v){ return (v == null || isNaN(v)) ? 0 : Number(v); }
     function escapeHtml(s){
-      return String(s).replace(/[&<>"']/g, function(c){
-        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]);
+      return String(s)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+    }[c]);
       });
     }
 
@@ -427,7 +433,7 @@
         PLAYERS = out;
         setDataStatus('Database (Excel) caricato da foglio: '+sheetName, true);
         refreshRotationOptions();
-      }catch(err){ console.error(err); setDataStatus('Errore nel parsing dell\'Excel'); }
+      }catch(err){ console.error(err); setDataStatus("Errore nel parsing dell'Excel"); }
     }
 
     // ======== Clear ========
@@ -477,6 +483,19 @@
       });
       document.getElementById('addRoster').addEventListener('click', increaseRoster);
       document.getElementById('removeRoster').addEventListener('click', decreaseRoster);
+
+      document.getElementById('demoBtn').addEventListener('click', ()=>{
+        PLAYERS = {
+          '1': {ID:'1', Name:'Demo A', ATK:2, BLK:1, DEF:0, SET:1, SERV:2},
+          '2': {ID:'2', Name:'Demo B', ATK:1, BLK:0, DEF:1, SET:2, SERV:1},
+          '3': {ID:'3', Name:'Demo C', ATK:3, BLK:1, DEF:2, SET:0, SERV:0},
+          '4': {ID:'4', Name:'Demo D', ATK:0, BLK:2, DEF:1, SET:2, SERV:1},
+          '5': {ID:'5', Name:'Demo E', ATK:2, BLK:0, DEF:2, SET:1, SERV:1},
+          '6': {ID:'6', Name:'Demo F', ATK:1, BLK:1, DEF:1, SET:1, SERV:1}
+        };
+        setDataStatus('Database di prova caricato', true);
+        refreshRotationOptions();
+      });
 
       if (location.protocol !== 'file:'){
         tryAutoLoadDefaultJson();
