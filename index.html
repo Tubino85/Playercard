@@ -138,23 +138,71 @@
   <script>
     // === Stato dati ===
     let playersById = {}; // popolato da players.json
+    let byIdLower = new Map();
+    let byNameLower = new Map();
     const dataStatusEl = document.getElementById('dataStatus');
 
     async function loadPlayers() {
       try {
-        const res = await fetch('players.json', { cache: 'no-store' });
+        const res = await fetch('./players.json', { cache: 'no-store' });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         if (data && data.playersById) {
           playersById = data.playersById;
+          // indici rapidi: id e nome case-insensitive
+          byIdLower.clear();
+          byNameLower.clear();
+          Object.values(playersById).forEach(p => {
+            byIdLower.set(String(p.id).trim().toLowerCase(), p.id);
+            byNameLower.set(String(p.name).trim().toLowerCase(), p.id);
+          });
           dataStatusEl.textContent = `Dati: ${Object.keys(playersById).length} giocatori`;
+          buildDatalist();
         } else {
           throw new Error('Formato players.json non valido');
         }
       } catch (err) {
         dataStatusEl.textContent = 'Dati: non trovati (carica players.json)';
-        console.error(err);
+        console.error('Errore caricamento players.json', err);
       }
+    }
+
+    // === Datalist per autocompletamento ===
+    const DL_ID = 'players-list';
+    function buildDatalist(){
+      let dl = document.getElementById(DL_ID);
+      if (!dl) {
+        dl = document.createElement('datalist');
+        dl.id = DL_ID;
+        document.body.appendChild(dl);
+      }
+      dl.innerHTML = '';
+      // Aggiungi opzioni come "ID — Nome"
+      Object.values(playersById).slice(0, 5000).forEach(p => { // limite sicurezza
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.label = `${p.id} — ${p.name}`;
+        dl.appendChild(opt);
+      });
+    }
+
+    function resolveToPlayer(inputValue){
+      const raw = String(inputValue || '').trim();
+      if (!raw) return null;
+      // 1) match esatto ID
+      if (playersById[raw]) return playersById[raw];
+      const low = raw.toLowerCase();
+      // 2) match case-insensitive su ID
+      const idFromLower = byIdLower.get(low);
+      if (idFromLower && playersById[idFromLower]) return playersById[idFromLower];
+      // 3) match esatto su NOME (case-insensitive)
+      const idFromName = byNameLower.get(low);
+      if (idFromName && playersById[idFromName]) return playersById[idFromName];
+      // 4) match parziale in ID o Nome (primo trovato)
+      for (const p of Object.values(playersById)){
+        if (String(p.id).toLowerCase().includes(low) || String(p.name).toLowerCase().includes(low)) return p;
+      }
+      return null;
     }
 
     // === Roster UI ===
@@ -165,7 +213,7 @@
     function makeRosterRow() {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><input class="idinput" type="text" placeholder="ID" /></td>
+        <td><input class="idinput" type="text" list="${DL_ID}" placeholder="ID o Nome" /></td>
         <td class="namebox" data-field="name">—</td>
         <td><span class="stat" data-field="ATK">0</span></td>
         <td><span class="stat" data-field="BLK">0</span></td>
@@ -175,21 +223,22 @@
       `;
 
       const idInput = tr.querySelector('.idinput');
+      idInput.addEventListener('input', () => fillRosterRow(tr, idInput.value));
+      idInput.addEventListener('change', () => fillRosterRow(tr, idInput.value));
+      idInput.addEventListener('blur', () => fillRosterRow(tr, idInput.value));
       idInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
           const next = tr.nextElementSibling?.querySelector('.idinput');
           if (next) next.focus();
-          fillRosterRow(tr, idInput.value.trim());
+          fillRosterRow(tr, idInput.value);
         }
       });
-      idInput.addEventListener('blur', () => fillRosterRow(tr, idInput.value.trim()));
       return tr;
     }
 
-    function fillRosterRow(tr, id) {
-      if (!id) { setRow(tr, null); return; }
-      const p = playersById[id] || null;
+    function fillRosterRow(tr, raw) {
+      const p = resolveToPlayer(raw);
       setRow(tr, p);
     }
 
@@ -206,93 +255,64 @@
 
     // === Rotazioni ===
     const rotazioniEl = document.getElementById('rotazioni');
+    const POS_LABELS = ['FS','FC','FD','SLS','SLC','SLD'];
 
     function makeRotCard(idx) {
       const card = document.createElement('div');
       card.className = 'rot-card';
+
+      const positionsHtml = POS_LABELS.map(label => `
+        <div class="pos">
+          <input class="idinput" type="text" list="${DL_ID}" placeholder="ID o Nome ${label}" />
+          <div class="blockline">
+            <div class="pill"><span>ATK/SET</span><b data-as="${label}">0/0</b></div>
+            <div class="pill"><span>BLK/DEF/SERV</span><b data-bds="${label}">0/0/0</b></div>
+          </div>
+        </div>
+      `).join('');
+
       card.innerHTML = `
         <div class="rot-head"><h3>Rotazione ${idx+1}</h3>
           <button class="mini-clear" title="Svuota" style="background:var(--chip);border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--text);cursor:pointer;font-size:12px;">Svuota</button>
         </div>
-        <div class="pos">
-          <input class="idinput" type="text" placeholder="ID P1" />
-          <div class="blockline">
-            <div class="pill"><span>ATK/SET</span><b data-as="P1">0/0</b></div>
-            <div class="pill"><span>BLK/DEF/SERV</span><b data-bds="P1">0/0/0</b></div>
-          </div>
-        </div>
-        <div class="pos">
-          <input class="idinput" type="text" placeholder="ID P2" />
-          <div class="blockline">
-            <div class="pill"><span>ATK/SET</span><b data-as="P2">0/0</b></div>
-            <div class="pill"><span>BLK/DEF/SERV</span><b data-bds="P2">0/0/0</b></div>
-          </div>
-        </div>
-        <div class="pos">
-          <input class="idinput" type="text" placeholder="ID P3" />
-          <div class="blockline">
-            <div class="pill"><span>ATK/SET</span><b data-as="P3">0/0</b></div>
-            <div class="pill"><span>BLK/DEF/SERV</span><b data-bds="P3">0/0/0</b></div>
-          </div>
-        </div>
-        <div class="pos">
-          <input class="idinput" type="text" placeholder="ID P4" />
-          <div class="blockline">
-            <div class="pill"><span>ATK/SET</span><b data-as="P4">0/0</b></div>
-            <div class="pill"><span>BLK/DEF/SERV</span><b data-bds="P4">0/0/0</b></div>
-          </div>
-        </div>
-        <div class="pos">
-          <input class="idinput" type="text" placeholder="ID P5" />
-          <div class="blockline">
-            <div class="pill"><span>ATK/SET</span><b data-as="P5">0/0</b></div>
-            <div class="pill"><span>BLK/DEF/SERV</span><b data-bds="P5">0/0/0</b></div>
-          </div>
-        </div>
-        <div class="pos">
-          <input class="idinput" type="text" placeholder="ID P6" />
-          <div class="blockline">
-            <div class="pill"><span>ATK/SET</span><b data-as="P6">0/0</b></div>
-            <div class="pill"><span>BLK/DEF/SERV</span><b data-bds="P6">0/0/0</b></div>
-          </div>
-        </div>
+        ${positionsHtml}
       `;
 
-      // wire up
       const inputs = card.querySelectorAll('.idinput');
-      inputs.forEach((inp, i) => {
-        const pos = 'P' + (i+1);
-        inp.addEventListener('input', () => updatePos(card, pos, inp.value.trim()));
-        inp.addEventListener('blur', () => updatePos(card, pos, inp.value.trim()));
+      inputs.forEach((inp) => {
+        const label = inp.placeholder.split(' ').pop(); // estrae FS/FC/...
+        const handler = () => updatePos(card, label, inp.value);
+        inp.addEventListener('input', handler);
+        inp.addEventListener('change', handler);
+        inp.addEventListener('blur', handler);
         inp.addEventListener('keydown', (e) => {
           if (e.key === 'Enter') {
             e.preventDefault();
-            const next = inputs[i+1];
+            const arr = Array.from(inputs);
+            const idx = arr.indexOf(inp);
+            const next = arr[idx+1];
             if (next) next.focus();
           }
         });
       });
+
       card.querySelector('.mini-clear').addEventListener('click', () => {
         inputs.forEach(inp => inp.value = '');
-        ['P1','P2','P3','P4','P5','P6'].forEach(p => renderASBDS(card, p, null));
+        POS_LABELS.forEach(p => renderASBDS(card, p, null));
       });
       return card;
     }
 
-    function updatePos(card, pos, id) {
-      const p = id ? playersById[id] || null : null;
-      renderASBDS(card, pos, p);
+    function updatePos(card, label, raw) {
+      const p = resolveToPlayer(raw);
+      renderASBDS(card, label, p);
     }
 
-    function renderASBDS(card, pos, p) {
-      const asEl = card.querySelector(`[data-as="${pos}"]`);
-      const bdsEl = card.querySelector(`[data-bds="${pos}"]`);
+    function renderASBDS(card, label, p) {
+      const asEl = card.querySelector(`[data-as="${label}"]`);
+      const bdsEl = card.querySelector(`[data-bds="${label}"]`);
       if (!asEl || !bdsEl) return;
-      if (!p) {
-        asEl.textContent = '0/0';
-        bdsEl.textContent = '0/0/0';
-        return;
-      }
+      if (!p) { asEl.textContent = '0/0'; bdsEl.textContent = '0/0/0'; return; }
       asEl.textContent = `${p.ATK ?? 0}/${p.SET ?? 0}`;
       bdsEl.textContent = `${p.BLK ?? 0}/${p.DEF ?? 0}/${p.SERV ?? 0}`;
     }
@@ -311,6 +331,9 @@
     clearRoster();
     initRotazioni();
     loadPlayers();
+
+    // Helper debug veloce in console
+    window.__testFetch = () => fetch('./players.json').then(r=>r.text()).then(t=>{console.log('players.json:', t.slice(0,200)+'...')}).catch(console.error);
   </script>
 </body>
-</html>
+  </html>
