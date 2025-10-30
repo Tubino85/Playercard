@@ -2,14 +2,10 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <title>Playercard • Roster & Rotazioni</title>
+  <title>Gioco da Tavolo – Playercard (Roster + Rotazioni con Posizioni)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    :root{
-      --bg:#0e0f11; --panel:#15171a; --muted:#9aa3ad; --text:#e9eef4; --acc:#5ac8fa;
-      --card:#1b1e22; --line:#2a2f36; --soft:#24282e; --ok:#3ddc97; --warn:#ff9f1c; --danger:#ef476f;
-      --radius:16px;
-    }
+    :root{ --bg:#0e0f11; --panel:#15171a; --muted:#9aa3ad; --text:#e9eef4; --acc:#5ac8fa; --line:#2a2f36; --card:#1b1e22; --soft:#24282e; --ok:#3ddc97; --warn:#ff9f1c; --danger:#ef476f; --radius:16px; }
     *{box-sizing:border-box}
     body{margin:0;background:#0d1015;color:var(--text);font:14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial}
     header{position:sticky;top:0;z-index:5;background:#0f1319ee;backdrop-filter:blur(6px);border-bottom:1px solid #1d222b;padding:20px}
@@ -42,22 +38,35 @@
   </style>
 </head>
 <body>
-  <header><div class="wrap"><h1>Playercard • Roster & Rotazioni</h1></div></header>
+  <header><div class="wrap"><h1>Playercard • Roster & Rotazioni (FS, FC, FD, SLS, SLC, SLD)</h1></div></header>
   <div class="wrap">
 
     <div class="section">Dati giocatori</div>
     <div class="toolbar">
-      <button id="reload" class="btn">Ricarica players.json</button>
-      <label class="btn alt">Carica JSON<input id="jsonFile" type="file" accept="application/json" hidden></label>
-      <span class="hint">players.json deve stare nella stessa cartella della pagina.</span>
+      <label class="btn alt">Carica JSON<input id="jsonInput" type="file" accept="application/json" hidden /></label>
+      <input id="jsonUrl" type="text" placeholder="players.json" style="max-width:240px" />
+      <button id="loadUrlBtn" class="btn">Carica da URL</button>
+      <button id="reloadBtn" class="btn">Ricarica auto</button>
+      <button id="demoBtn" class="btn">Dati di prova</button>
+      <button id="clearBtn" class="btn">Svuota tutto</button>
+      <span class="hint">Se la pagina è su http/https e <code>players.json</code> è nella stessa cartella, verrà caricato in automatico.</span>
     </div>
-    <div id="status" class="card"><span class="pill">Nessun database caricato</span></div>
+
+    <div class="card">
+      <h3>Stato dati</h3>
+      <div class="totals" id="dataStatus"><span class="pill">Nessun database caricato</span></div>
+    </div>
 
     <div class="section">Roster (12)</div>
+    <div class="toolbar" style="margin-top:6px">
+      <button id="addRoster" class="btn">Aggiungi giocatore</button>
+      <button id="removeRoster" class="btn alt">Rimuovi ultimo</button>
+      <span class="hint">Roster base 12. Puoi salire fino a 18.</span>
+    </div>
     <div id="roster" class="grid grid-2"></div>
 
     <div class="section">Rotazioni (R1–R6)</div>
-    <div id="rotations" class="grid grid-3"></div>
+    <div id="rotazioni" class="grid grid-3"></div>
     <div id="ruleMsg" class="msg"></div>
 
   </div>
@@ -66,13 +75,13 @@
     // ===== Config =====
     const POSITIONS = ["FS","FC","FD","SLS","SLC","SLD"]; // layout: FS-FC-FD | SLS-SLC-SLD
     const FRONT_POS = new Set(["FS","FC","FD"]);
-    const ROSTER_SIZE = 12;
+    let ROSTER_SIZE = 12;
 
     // ===== State =====
     let PLAYERS = {}; // id -> record
 
     // ===== Utils =====
-    function normId(raw){
+    function normalizeId(raw){
       if(raw==null) return "";
       const s = String(raw).trim().replace(/,/g,'.');
       const n = Number(s);
@@ -80,7 +89,7 @@
       return s;
     }
     function getPlayer(idRaw){
-      const id = normId(idRaw);
+      const id = normalizeId(idRaw);
       if(!id) return null;
       if(PLAYERS[id]) return PLAYERS[id];
       if(PLAYERS[id+".0"]) return PLAYERS[id+".0"];
@@ -89,252 +98,191 @@
     }
     function stat(p,k){ return Number(p[k]) || 0; }
     function pname(p){ return p.Name || p.name || ""; }
-    function escapeHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&#39;"); }
-    function setStatus(msg, ok){
-      const el = document.getElementById("status");
-      el.innerHTML = '<span class="pill">'+(ok?'<b>OK</b> • ':'')+escapeHtml(msg)+'</span>';
+    function escapeHtml(s){
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&#39;");
     }
-    function showRuleMsg(text, type="warn"){
-      const el = document.getElementById("ruleMsg");
-      el.className = "msg "+(type==="err"?"err":"warn");
-      el.textContent = text || "";
-    }
+    function setDataStatus(msg, ok=false){
+      const box = document.getElementById('dataStatus');
+      box.innerHTML = '';
+      const pill = document.createElement('span'); pill.className='pill';
+      pill.innerHTML = (ok?'<b>OK</b> • ':'')+escapeHtml(msg); box.appendChild(pill);
+      if(ok){ const n = Object.keys(PLAYERS).length; const p2=document.createElement('span'); p2.className='pill'; p2.innerHTML = '<b>'+n+'</b> giocatori caricati'; box.appendChild(p2);} }
 
-    // ---- ruolo ----
-    const ROLE_KEYS = ["ROLE","Role","role","RUOLO","Ruolo","ruolo","POSITION","Position","position","POS","Pos","pos"];
-    function roleStr(p){
-      for(const k of ROLE_KEYS){ if(p && p[k]!=null){ return String(p[k]).trim(); } }
-      return ""; // se mancante, niente blocco
-    }
-    function roleCode(p){
-      const s = roleStr(p).toUpperCase();
-      if(!s) return "";
-      // prendi la prima lettera utile (gestisce valori come "Libero", "R", "Ricevitore")
-      const m = s.match(/[A-Z]/);
-      return m ? m[0] : "";
-    }
-    function roleBlockedInFront(p){ // R o L non ammessi in FS/FC/FD
-      const c = roleCode(p);
-      return c === "R" || c === "L";
-    }
-
-    // ===== Data load =====
-    async function loadDefault(){
-      try{
-        const r = await fetch("players.json",{cache:"no-cache"});
-        if(!r.ok) throw new Error("HTTP "+r.status);
-        const data = await r.json();
-        PLAYERS = data.playersById || data;
-        setStatus("Caricato players.json ("+Object.keys(PLAYERS).length+" giocatori)", true);
-        refreshAll();
-      }catch(e){
-        setStatus("Impossibile leggere players.json. Carica manualmente il file JSON.", false);
-      }
-    }
-    function loadFromFile(file){
-      const fr = new FileReader();
-      fr.onload = ()=>{
-        try{
-          const data = JSON.parse(fr.result);
-          PLAYERS = data.playersById || data;
-          setStatus("Caricato JSON da file ("+Object.keys(PLAYERS).length+" giocatori)", true);
-          refreshAll();
-        }catch(e){ setStatus("JSON non valido.", false); }
-      };
-      fr.readAsText(file);
-    }
+    // ===== Role support (optional) =====
+    const ROLE_KEYS = ["Role","ROLE","role","Ruolo","RUOLO","ruolo"]; // se non esiste, nessun blocco
+    function readRole(p){ for(const k of ROLE_KEYS){ if(p && p[k]!=null) return String(p[k]).trim(); } return ""; }
+    function roleBlockedInFront(p){ const c = readRole(p).toUpperCase(); return c==="R" || c==="L"; }
 
     // ===== Roster =====
     function buildRoster(){
-      const root = document.getElementById("roster");
-      root.innerHTML = "";
-      for(let i=1;i<=ROSTER_SIZE;i++){
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <div class="grid grid-2">
-            <div>
-              <label>ID</label>
-              <input type="text" data-roster-id="${i}" placeholder="es. 1" />
-            </div>
-            <div>
-              <label>Nome</label>
-              <input type="text" data-roster-name="${i}" disabled />
-            </div>
-          </div>
-          <div style="margin-top:10px">
-            <table>
-              <thead><tr><th>ATK</th><th>BLK</th><th>DEF</th><th>SET</th><th>SERV</th></tr></thead>
-              <tbody><tr>
-                <td data-roster-atk="${i}">—</td>
-                <td data-roster-blk="${i}">—</td>
-                <td data-roster-def="${i}">—</td>
-                <td data-roster-set="${i}">—</td>
-                <td data-roster-serv="${i}">—</td>
-              </tr></tbody>
-            </table>
-          </div>`;
-        root.appendChild(card);
-      }
+      const root = document.getElementById('roster'); root.innerHTML='';
+      for(let i=1;i<=ROSTER_SIZE;i++) addRosterCard(i);
+      wireRosterInputs();
+    }
+    function addRosterCard(i){
+      const root = document.getElementById('roster');
+      const card = document.createElement('div'); card.className='card'; card.setAttribute('data-roster-card',i);
+      card.innerHTML = `
+        <h3>Giocatore #${i}</h3>
+        <div class="grid grid-2">
+          <div><label>ID</label><input type="text" data-roster-id="${i}" placeholder="es. 1" /></div>
+          <div><label>Nome</label><input type="text" data-roster-name="${i}" disabled /></div>
+        </div>
+        <div style="margin-top:10px">
+          <table>
+            <thead><tr><th>ATK</th><th>BLK</th><th>DEF</th><th>SET</th><th>SERV</th></tr></thead>
+            <tbody><tr>
+              <td data-roster-atk="${i}">—</td>
+              <td data-roster-blk="${i}">—</td>
+              <td data-roster-def="${i}">—</td>
+              <td data-roster-set="${i}">—</td>
+              <td data-roster-serv="${i}">—</td>
+            </tr></tbody>
+          </table>
+        </div>`;
+      root.appendChild(card);
+    }
+    function wireRosterInputs(){
       for(let i=1;i<=ROSTER_SIZE;i++){
         const input = document.querySelector(`[data-roster-id="${i}"]`);
-        input.addEventListener("input", ()=>{ fillRosterLine(i, input.value); refreshRotationOptions(); });
+        input.addEventListener('input',()=>{ fillRosterLine(i,input.value); refreshRotationOptions(); });
       }
     }
     function fillRosterLine(i, rawId){
       const p = getPlayer(rawId);
       const nameEl = document.querySelector(`[data-roster-name="${i}"]`);
-      const t = {
+      const el = {
         atk: document.querySelector(`[data-roster-atk="${i}"]`),
         blk: document.querySelector(`[data-roster-blk="${i}"]`),
         def: document.querySelector(`[data-roster-def="${i}"]`),
         set: document.querySelector(`[data-roster-set="${i}"]`),
         serv: document.querySelector(`[data-roster-serv="${i}"]`)
       };
-      if(!p){
-        nameEl.value = "";
-        t.atk.textContent=t.blk.textContent=t.def.textContent=t.set.textContent=t.serv.textContent="—";
-        return;
-      }
+      if(!p){ nameEl.value=''; Object.values(el).forEach(td=>td.textContent='—'); return; }
       nameEl.value = pname(p);
-      t.atk.textContent = stat(p,"ATK");
-      t.blk.textContent = stat(p,"BLK");
-      t.def.textContent = stat(p,"DEF");
-      t.set.textContent = stat(p,"SET");
-      t.serv.textContent = stat(p,"SERV");
+      el.atk.textContent = stat(p,'ATK'); el.blk.textContent = stat(p,'BLK'); el.def.textContent = stat(p,'DEF'); el.set.textContent = stat(p,'SET'); el.serv.textContent = stat(p,'SERV');
     }
     function rosterEntries(){
-      const ids = [];
-      for(let i=1;i<=ROSTER_SIZE;i++){
-        const v = document.querySelector(`[data-roster-id="${i}"]`).value;
-        const p = getPlayer(v);
-        if(p) ids.push({id:normId(v), name:pname(p)});
-      }
-      const seen = new Set();
-      return ids.filter(x=>{ if(seen.has(x.id)) return false; seen.add(x.id); return true; });
+      const out=[]; for(let i=1;i<=ROSTER_SIZE;i++){ const v=document.querySelector(`[data-roster-id="${i}"]`).value; const p=getPlayer(v); if(p) out.push({id:normalizeId(v), name:pname(p)}); }
+      const seen=new Set(); return out.filter(e=>{ if(seen.has(e.id)) return false; seen.add(e.id); return true; });
     }
 
     // ===== Rotazioni =====
     function buildRotations(){
-      const root = document.getElementById("rotations");
-      root.innerHTML = "";
+      const root=document.getElementById('rotazioni'); root.innerHTML='';
       for(let r=1;r<=6;r++){
-        const c = document.createElement("div");
-        c.className = "card";
-        const selects =
-          `<div class="posgrid">
-             <div><label>FS</label><select data-rot="${r}-FS"><option value="">—</option></select></div>
-             <div><label>FC</label><select data-rot="${r}-FC"><option value="">—</option></select></div>
-             <div><label>FD</label><select data-rot="${r}-FD"><option value="">—</option></select></div>
-             <div><label>SLS</label><select data-rot="${r}-SLS"><option value="">—</option></select></div>
-             <div><label>SLC</label><select data-rot="${r}-SLC"><option value="">—</option></select></div>
-             <div><label>SLD</label><select data-rot="${r}-SLD"><option value="">—</option></select></div>
-           </div>`;
-        let cellsA="", cellsB="";
+        const c=document.createElement('div'); c.className='card';
+        let selects='';
+        for(const pos of POSITIONS){
+          selects += `<div><label>${pos}</label><select data-rot="${r}-${pos}"><option value="">—</option></select></div>`;
+        }
+        let cellsA='',cellsB='';
         for(const pos of POSITIONS){
           cellsA += `<div class="poscell"><b>${pos}</b><span data-aks="${r}-${pos}">—/—</span></div>`;
           cellsB += `<div class="poscell"><b>${pos}</b><span data-bds="${r}-${pos}">—/—/—</span></div>`;
         }
         c.innerHTML = `
           <h3 style="margin:0 0 8px">Rotazione R${r} <span class="pill">R${r}</span></h3>
-          ${selects}
+          <div class="posgrid">${selects}</div>
           <div class="grid grid-2" style="margin-top:10px">
             <div class="k"><b>ATK/SET per posizione</b><div class="posgrid">${cellsA}</div></div>
             <div class="k"><b>BLK/DEF/SERV per posizione</b><div class="posgrid">${cellsB}</div></div>
           </div>`;
         root.appendChild(c);
       }
-      // wire
       for(let r=1;r<=6;r++){
         for(const pos of POSITIONS){
-          const sel = document.querySelector(`[data-rot="${r}-${pos}"]`);
-          sel.addEventListener("change", ()=>{
+          const sel=document.querySelector(`[data-rot="${r}-${pos}"]`);
+          sel.addEventListener('change',()=>{
             // anti-duplicati
             const vals = POSITIONS.map(p=>document.querySelector(`[data-rot="${r}-${p}"]`).value).filter(Boolean);
-            const count = vals.filter(v=>v===sel.value).length;
-            if(count>1){ sel.value=""; showRuleMsg("ID già usato in R"+r+".", "warn"); }
-            // blocco di ruolo sulle posizioni frontali
-            const pl = getPlayer(sel.value);
-            if(FRONT_POS.has(pos) && pl && roleBlockedInFront(pl)){
-              sel.value=""; showRuleMsg("Ruolo R/L non ammesso in FS/FC/FD.", "err");
-              sel.classList.add("invalid"); setTimeout(()=>sel.classList.remove("invalid"),600);
-            }
-            enforceNoDuplicates(r);
-            updateRotation(r);
+            const count = vals.filter(v=>v===sel.value).length; if(count>1){ sel.value=''; showRuleMsg(`ID già usato in R${r}.`,'warn'); }
+            // blocco ruolo sulle front
+            const pl=getPlayer(sel.value); if(FRONT_POS.has(pos) && pl && roleBlockedInFront(pl)){ sel.value=''; showRuleMsg('Ruolo R/L non ammesso in FS/FC/FD.','err'); sel.classList.add('invalid'); setTimeout(()=>sel.classList.remove('invalid'),600); }
+            enforceNoDuplicates(r); updateRotation(r);
           });
         }
       }
     }
-
-    function buildOptionsForPos(entries, pos){
-      return ['<option value="">—</option>'].concat(
-        entries.map(e=>{
-          const p = getPlayer(e.id);
-          const rlBlocked = FRONT_POS.has(pos) && p && roleBlockedInFront(p);
-          const dis = rlBlocked ? ' disabled title="Ruolo R/L non ammesso in FS/FC/FD"' : '';
-          return `<option value="${e.id}"${dis}>[${e.id}] ${escapeHtml(e.name)}</option>`;
-        })
-      ).join("");
+    function showRuleMsg(t,kind){ const el=document.getElementById('ruleMsg'); el.className='msg '+(kind==='err'?'err':'warn'); el.textContent=t; }
+    function buildOptionsForPos(entries,pos){
+      return ['<option value="">—</option>'].concat(entries.map(e=>{
+        const p=getPlayer(e.id); const block= FRONT_POS.has(pos) && p && roleBlockedInFront(p);
+        return `<option value="${e.id}"${block? ' disabled title="Ruolo R/L non ammesso in FS/FC/FD"':''}>[${e.id}] ${escapeHtml(e.name)}</option>`;
+      })).join('');
     }
-
     function refreshRotationOptions(){
-      const entries = rosterEntries(); // solo ID del roster
+      const entries = rosterEntries();
       for(let r=1;r<=6;r++){
         for(const pos of POSITIONS){
-          const sel = document.querySelector(`[data-rot="${r}-${pos}"]`);
-          const prev = sel.value;
-          sel.innerHTML = buildOptionsForPos(entries, pos);
-          // ripristina se ancora valido e non vietato
-          const plPrev = getPlayer(prev);
-          if(prev && entries.some(e=>e.id===prev) && !(FRONT_POS.has(pos) && plPrev && roleBlockedInFront(plPrev))){
-            sel.value = prev;
-          } else {
-            sel.value = "";
-          }
+          const sel=document.querySelector(`[data-rot="${r}-${pos}"]`);
+          const prev=sel.value; sel.innerHTML = buildOptionsForPos(entries,pos);
+          const pPrev=getPlayer(prev);
+          if(prev && entries.some(e=>e.id===prev) && !(FRONT_POS.has(pos) && pPrev && roleBlockedInFront(pPrev))) sel.value=prev; else sel.value='';
         }
-        enforceNoDuplicates(r);
-        updateRotation(r);
+        enforceNoDuplicates(r); updateRotation(r);
       }
     }
-
     function enforceNoDuplicates(r){
-      // disabilita nelle opzioni i valori già scelti nella stessa rotazione (eccetto nel proprio select)
-      const sels = POSITIONS.map(pos => document.querySelector(`[data-rot="${r}-${pos}"]`));
+      const sels = POSITIONS.map(pos=>document.querySelector(`[data-rot="${r}-${pos}"]`));
       const used = new Set(sels.map(s=>s.value).filter(Boolean));
       sels.forEach(sel=>{
         Array.from(sel.options).forEach(opt=>{
           if(!opt.value){ opt.disabled=false; return; }
-          const isMine = sel.value === opt.value;
+          const isMine = sel.value===opt.value;
           const dupDisabled = used.has(opt.value) && !isMine;
-          // mantieni anche il blocco ruolo su front
-          const pos = sel.getAttribute("data-rot").split("-")[1];
-          const p = getPlayer(opt.value);
-          const rlBlocked = FRONT_POS.has(pos) && p && roleBlockedInFront(p);
+          const pos = sel.getAttribute('data-rot').split('-')[1];
+          const p = getPlayer(opt.value); const rlBlocked = FRONT_POS.has(pos) && p && roleBlockedInFront(p);
           opt.disabled = dupDisabled || rlBlocked;
         });
       });
     }
-
     function updateRotation(r){
       for(const pos of POSITIONS){
-        const sel = document.querySelector(`[data-rot="${r}-${pos}"]`);
-        const p = getPlayer(sel.value);
-        const a = document.querySelector(`[data-aks="${r}-${pos}"]`);
-        const b = document.querySelector(`[data-bds="${r}-${pos}"]`);
-        if(!p){ a.textContent="—/—"; b.textContent="—/—/—"; continue; }
-        a.textContent = `${stat(p,"ATK")}/${stat(p,"SET")}`;
-        b.textContent = `${stat(p,"BLK")}/${stat(p,"DEF")}/${stat(p,"SERV")}`;
+        const sel=document.querySelector(`[data-rot="${r}-${pos}"]`);
+        const p=getPlayer(sel.value);
+        const a=document.querySelector(`[data-aks="${r}-${pos}"]`);
+        const b=document.querySelector(`[data-bds="${r}-${pos}"]`);
+        if(!p){ a.textContent='—/—'; b.textContent='—/—/—'; continue; }
+        a.textContent = `${stat(p,'ATK')}/${stat(p,'SET')}`;
+        b.textContent = `${stat(p,'BLK')}/${stat(p,'DEF')}/${stat(p,'SERV')}`;
       }
     }
 
-    function refreshAll(){ buildRoster(); buildRotations(); refreshRotationOptions(); }
+    // ===== Loaders =====
+    async function autoLoad(){
+      if(location.protocol==='file:'){ setDataStatus("Apertura locale (file://): usa 'Carica JSON' oppure 'Carica da URL'."); return; }
+      try{
+        const r = await fetch('players.json', {cache:'no-cache'});
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        const data = await r.json(); PLAYERS = data.playersById || data; setDataStatus('Database caricato da players.json', true); refreshAll();
+      }catch(e){ setDataStatus('Impossibile leggere players.json. Usa Carica JSON o specifica un URL.', false); }
+    }
+    async function loadFromJsonUrl(url){
+      try{ const r=await fetch(url,{cache:'no-cache'}); if(!r.ok) throw new Error('HTTP '+r.status); const data=await r.json(); PLAYERS=data.playersById||data; setDataStatus('Database (JSON) da URL: '+url,true); refreshAll(); }
+      catch(e){ setDataStatus('Errore caricando '+url+': '+e.message, false); }
+    }
+    function loadFromJsonFile(file){ const fr=new FileReader(); fr.onload=()=>{ try{ const data=JSON.parse(fr.result); PLAYERS=data.playersById||data; setDataStatus('Database (JSON) da file', true); refreshAll(); }catch(e){ setDataStatus('JSON non valido', false); } }; fr.readAsText(file); }
 
-    // ===== Boot & events =====
-    document.getElementById("reload").addEventListener("click", loadDefault);
-    document.getElementById("jsonFile").addEventListener("change", e=>{
-      const f = e.target.files && e.target.files[0]; if(f) loadFromFile(f);
-    });
-    loadDefault();
+    // ===== Orchestrazione =====
+    function refreshAll(){ buildRoster(); buildRotations(); refreshRotationOptions(); document.getElementById('rosterCountLabel')?.textContent=String(ROSTER_SIZE); }
+
+    // ===== Init =====
+    (function init(){
+      // base skeleton
+      buildRoster(); buildRotations(); setDataStatus('Nessun database caricato'); refreshRotationOptions();
+      // events
+      document.getElementById('jsonInput').addEventListener('change', e=>{ const f=e.target.files&&e.target.files[0]; if(f) loadFromJsonFile(f); });
+      document.getElementById('loadUrlBtn').addEventListener('click', ()=>{ const url=(document.getElementById('jsonUrl').value||'players.json').trim(); loadFromJsonUrl(url); });
+      document.getElementById('jsonUrl').addEventListener('keydown', e=>{ if(e.key==='Enter'){ const url=(document.getElementById('jsonUrl').value||'players.json').trim(); loadFromJsonUrl(url); }});
+      document.getElementById('addRoster').addEventListener('click', ()=>{ if(ROSTER_SIZE<18){ ROSTER_SIZE++; addRosterCard(ROSTER_SIZE); wireRosterInputs(); refreshRotationOptions(); document.getElementById('rosterCountLabel').textContent=String(ROSTER_SIZE); } });
+      document.getElementById('removeRoster').addEventListener('click', ()=>{ if(ROSTER_SIZE>1){ const card=document.querySelector(`[data-roster-card="${ROSTER_SIZE}"]`); if(card) card.remove(); ROSTER_SIZE--; refreshRotationOptions(); document.getElementById('rosterCountLabel').textContent=String(ROSTER_SIZE); } });
+      document.getElementById('clearBtn').addEventListener('click', ()=>{ for(let i=1;i<=ROSTER_SIZE;i++){ const id=document.querySelector(`[data-roster-id="${i}"]`); const nm=document.querySelector(`[data-roster-name="${i}"]`); if(id) id.value=''; if(nm) nm.value=''; fillRosterLine(i,''); } for(let r=1;r<=6;r++){ for(const pos of POSITIONS){ const sel=document.querySelector(`[data-rot="${r}-${pos}"]`); if(sel) sel.value=''; } updateRotation(r);} refreshRotationOptions(); });
+      document.getElementById('demoBtn').addEventListener('click', ()=>{ PLAYERS={ '1':{ID:'1',Name:'Demo A',ATK:2,BLK:1,DEF:0,SET:1,SERV:2,Role:'S'}, '2':{ID:'2',Name:'Demo B',ATK:1,BLK:0,DEF:1,SET:2,SERV:1,Role:'R'}, '3':{ID:'3',Name:'Demo C',ATK:3,BLK:1,DEF:2,SET:0,SERV:0,Role:'OH'}, '4':{ID:'4',Name:'Demo D',ATK:0,BLK:2,DEF:1,SET:2,SERV:1,Role:'L'}, '5':{ID:'5',Name:'Demo E',ATK:2,BLK:0,DEF:2,SET:1,SERV:1,Role:'MB'}, '6':{ID:'6',Name:'Demo F',ATK:1,BLK:1,DEF:1,SET:1,SERV:1,Role:'OPP'} }; setDataStatus('Database di prova caricato', true); refreshAll(); });
+      document.getElementById('reloadBtn').addEventListener('click', autoLoad);
+      // auto-load players.json (solo http/https)
+      autoLoad();
+    })();
   </script>
 </body>
 </html>
