@@ -519,10 +519,70 @@ document.addEventListener("change", (e) => {
   }
 });
 </script>
+<!-- === [ADD] Auto-propagazione da qualsiasi Rx verso le successive === -->
+<script>
+// riuso l'ordine già definito in precedenza
+const ROT_ORDER = ["FS","FC","FD","SLD","SLC","SLS"];
+
+function rotatePos(pos, shift){
+  const n = ROT_ORDER.length;
+  const i = ROT_ORDER.indexOf(pos);
+  if (i < 0) return pos;
+  return ROT_ORDER[(i + (shift % n) + n) % n];
+}
+
+function rotationHasValue(r, val){
+  return POSITIONS.some(p => {
+    const sel = document.querySelector(`[data-rot="${r}-${p}"]`);
+    return sel && sel.value === val;
+  });
+}
+
+// Propaga il valore scelto in Rr,pos verso R(r+1)..R6
+function cascadeFrom(rStart, posStart, val){
+  if (!val) return;
+  for (let r = rStart + 1; r <= 6; r++){
+    const shift = (r - rStart);
+    const destPos = rotatePos(posStart, shift);
+    const destSel = document.querySelector(`[data-rot="${r}-${destPos}"]`);
+    if (!destSel) continue;
+
+    // non sovrascrivere scelte già presenti o duplicare nella stessa rotazione
+    if (destSel.value) continue;
+    if (rotationHasValue(r, val)) continue;
+
+    // rispetto vincolo ruoli R/L in prima linea
+    const pl = getPlayer(val);
+    if (FRONT_POS.has(destPos) && pl && roleBlockedInFront(pl)) continue;
+
+    // inserisci solo se l'opzione esiste (deve essere nel roster)
+    const hasOpt = Array.from(destSel.options).some(o => o.value === val);
+    if (!hasOpt) continue;
+
+    destSel.value = val;
+    enforceNoDuplicates(r);
+    updateRotation(r);
+  }
+  showRuleMsg(`Propagato da R${rStart} (${posStart}) fino a R6 quando possibile.`, "warn");
+}
+
+// Ascolta cambi su TUTTE le select delle rotazioni (tranne R1 che ha già auto-fill)
+document.addEventListener("change", (e) => {
+  const t = e.target;
+  if (!t || !t.matches('select[data-rot]')) return;
+  const attr = t.getAttribute('data-rot'); // es. "3-FS"
+  const [rStr, pos] = attr.split('-');
+  const r = parseInt(rStr, 10);
+  if (!r || r <= 1) return; // R1 è gestita dal feature precedente
+  const val = t.value;
+  cascadeFrom(r, pos, val);
+});
+</script>
 <!-- Fallback embedded: incolla qui il tuo players.json per funzionare anche in file:// -->
 <script id="players-embedded" type="application/json">
 </script>
 
 </body>
 </html>
+
 
