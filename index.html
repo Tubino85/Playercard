@@ -1,339 +1,430 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Playercard Online — Roster & Rotazioni</title>
+  <title>Gioco da Tavolo – Playercard (Roster + Rotazioni con Posizioni)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <!-- Libreria per leggere Excel lato client (opzionale) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    :root {
-      --bg: #0e0f13;
-      --card: #151821;
-      --muted: #9298a4;
-      --text: #e8ebf1;
-      --accent: #7ee787;
-      --danger: #ff6b6b;
-      --line: #232836;
-      --chip: #1e2230;
+    :root{
+      --bg:#0e0f11; --panel:#15171a; --muted:#9aa3ad; --text:#e9eef4; --acc:#5ac8fa; --acc2:#ffd166;
+      --ok:#3ddc97; --warn:#ff9f1c; --danger:#ef476f; --card:#1b1e22; --soft:#24282e; --line:#2a2f36;
+      --radius:16px;
     }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
-    a { color: var(--accent); text-decoration: none; }
-    .wrap { max-width: 1200px; margin: 28px auto; padding: 0 16px; }
-    header { display:flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-    header h1 { font-size: 22px; margin: 0; letter-spacing: 0.3px; }
-    header .chip { background: var(--chip); color: var(--muted); padding: 6px 10px; border-radius: 999px; font-size: 12px; }
-
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-    @media (max-width: 1000px){ .grid { grid-template-columns: 1fr; } }
-
-    .card { background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)) , var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
-    .card h2 { margin: 0 0 12px; font-size: 16px; font-weight: 600; letter-spacing: 0.2px; }
-    .sub { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
-
-    .toolbar { display:flex; gap: 10px; align-items:center; margin-bottom: 12px; }
-    .toolbar input[type="text"], .toolbar select { background: #0b0d13; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
-
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border-bottom: 1px dashed var(--line); padding: 8px 6px; font-size: 13px; text-align: left; }
-    th { color: var(--muted); font-weight: 600; letter-spacing: .2px; font-size: 12px; }
-    tbody tr:hover { background: rgba(255,255,255,.02); }
-
-    .idbox { width: 92px; }
-    .namebox { width: 100%; min-width: 160px; }
-    .stat { width: 58px; text-align: center; background: #0b0d13; border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 8px; font-variant-numeric: tabular-nums; }
-    .idinput { width: 92px; background: #0b0d13; border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 8px; }
-
-    .help { color: var(--muted); font-size: 12px; margin-top: 8px; }
-
-    .rotazioni { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    @media (max-width: 1200px){ .rotazioni { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 780px){ .rotazioni { grid-template-columns: 1fr; } }
-
-    .rot-card { border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 12px; }
-    .rot-head { display:flex; align-items:center; justify-content: space-between; margin-bottom: 8px; }
-    .rot-head h3 { margin: 0; font-size: 14px; }
-    .pos { display:grid; grid-template-columns: 94px 1fr; gap: 10px; align-items: center; margin: 8px 0; }
-    .blockline { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .pill { background: #0b0d13; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display:flex; gap: 8px; align-items:center; justify-content: space-between; }
-    .pill b { font-variant-numeric: tabular-nums; }
-
-    details { margin-top: 14px; }
-    details summary { cursor: pointer; color: var(--muted); }
-    .rules { line-height: 1.55; font-size: 14px; color: #d9dbe2; }
-    .rules h3 { margin: 12px 0 6px; font-size: 15px; }
-    .warn { color: var(--danger); font-size: 12px; }
-
-    .sticky-footer { margin-top: 16px; color: var(--muted); font-size: 12px; display:flex; gap: 12px; align-items:center; }
-    .kbd { border: 1px solid var(--line); background:#0b0d13; padding: 2px 6px; border-radius: 6px; font-size: 12px; }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{ margin:0; background:linear-gradient(180deg,#0c0d10, #111317);
+      color:var(--text); font:14px/1.3 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial; }
+    header{ padding:24px 20px; position:sticky; top:0; z-index:5; background:rgba(17,19,23,.85); backdrop-filter: blur(6px);
+      border-bottom:1px solid #20242a; }
+    h1{margin:0; font-size:20px; letter-spacing:.3px}
+    .wrap{max-width:1200px; margin:0 auto; padding:20px}
+    .toolbar{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:14px 0 22px }
+    .btn{ background:var(--acc); color:#001018; border:0; padding:10px 14px; border-radius:10px;
+      font-weight:600; cursor:pointer; transition:transform .05s ease; box-shadow:0 3px 0 #1b6a82; }
+    .btn:active{ transform: translateY(1px); }
+    .btn.alt{ background:var(--soft); color:var(--text); box-shadow:none; border:1px solid var(--line) }
+    .hint{color:var(--muted)}
+    .grid{ display:grid; gap:14px; }
+    .card{ background:linear-gradient(180deg, var(--card), #161a1f);
+      border:1px solid #252a31; border-radius:var(--radius); padding:14px; box-shadow: 0 10px 20px rgba(0,0,0,.25); }
+    .card h3{margin:0 0 10px; font-size:16px}
+    .pair{ display:grid; grid-template-columns:1fr 1fr; gap:10px }
+    label{font-size:12px; color:var(--muted); display:block; margin-bottom:6px}
+    input[type="text"], input[type="number"], select{
+      width:100%; padding:10px 11px; border-radius:10px; border:1px solid var(--line); background:#121419; color:var(--text);
+      outline:none; appearance:none;
+    }
+    select:disabled{ opacity:.6; cursor:not-allowed }
+    table{width:100%; border-collapse:collapse; overflow:hidden; border-radius:10px; border:1px solid var(--line)}
+    th,td{padding:8px 10px; border-bottom:1px solid #222831; text-align:center}
+    th{background:#12161c; color:#cbd5e1; font-weight:600}
+    tr:last-child td{border-bottom:0}
+    .kpi{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:10px }
+    .k{ background:var(--soft); border:1px solid #2b3038; border-radius:12px; padding:10px }
+    .k b{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
+    .k .v{font-size:22px; font-weight:800}
+    .success{color:var(--ok)} .warn{color:var(--warn)} .danger{color:var(--danger)}
+    details{background:var(--panel); border:1px solid #232830; padding:14px; border-radius:var(--radius)}
+    details summary{cursor:pointer; font-weight:700; margin:-6px 0 8px}
+    .section-title{margin:18px 0 8px; font-size:18px}
+    .roster-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px}
+    .rotation-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+    @media (max-width:1000px){ .rotation-grid{grid-template-columns:1fr} .roster-grid{grid-template-columns:1fr}}
+    .pill{ display:inline-block; font-size:11px; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:#11151b; color:#c7d0dc }
+    .totals{display:flex; gap:10px; flex-wrap:wrap}
+    .totals .pill b{color:#fff}
+    .footer-space{height:40px}
+    .posgrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .poscell{ background:#12161c; border:1px solid var(--line); border-radius:10px; padding:8px; text-align:center }
+    .poscell b{ display:block; font-size:11px; color:var(--muted) }
+    .subtle{ font-size:12px; color:var(--muted) }
   </style>
 </head>
 <body>
+  <header><div class="wrap"><h1>Playercard • Roster & Rotazioni (FS, FC, FD, SLD, SLC, SLS)</h1></div></header>
   <div class="wrap">
-    <header>
-      <h1>Playercard Online</h1>
-      <span class="chip">Roster & Rotazioni</span>
-      <span class="chip" id="dataStatus">Dati: …</span>
-    </header>
 
-    <div class="grid">
-      <section class="card" id="rosterCard">
-        <h2>Roster</h2>
-        <p class="sub">Scrivi l'ID del giocatore: nome e statistiche si compilano in automatico dalla banca dati (<code>players.json</code>).</p>
-        <div class="toolbar">
-          <button id="addRow" title="Aggiungi riga" style="background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--text);cursor:pointer;">+ Aggiungi riga</button>
-          <button id="clearRoster" title="Svuota roster" style="background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--text);cursor:pointer;">Svuota</button>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nome</th>
-              <th>ATK</th>
-              <th>BLK</th>
-              <th>DEF</th>
-              <th>SET</th>
-              <th>SERV</th>
-            </tr>
-          </thead>
-          <tbody id="rosterBody"></tbody>
-        </table>
-        <p class="help">Suggerimento: premi <span class="kbd">Invio</span> nell'ID per passare al campo successivo.</p>
-      </section>
+    <details open>
+      <summary>Regole d'uso (sintesi)</summary>
+      <div class="hint">
+        <ul>
+          <li><b>Roster:</b> inserisci l’ID; la riga si auto-compila con Nome e statistiche.</li>
+          <li><b>Rotazioni R1–R6:</b> per ogni rotazione scegli i 6 giocatori <u>solo dal roster</u> nelle posizioni <b>FS, FC, FD, SLD, SLC, SLS</b>.</li>
+          <li><b>Calcoli:</b> per ogni posizione mostriamo <i>ATK/SET</i> e <i>BLK/DEF/SERV</i>; in basso vedi i totali della rotazione.</li>
+        </ul>
+      </div>
+    </details>
 
-      <section class="card">
-        <h2>Rotazioni (6)</h2>
-        <p class="sub">Inserisci l'ID in ciascuna posizione. I blocchi mostrano automaticamente <b>ATK/SET</b> e <b>BLK/DEF/SERV</b>.</p>
-        <div class="rotazioni" id="rotazioni"></div>
-        <details>
-          <summary>Regolamento — bozza compatta</summary>
-          <div class="rules">
-            <h3>Struttura</h3>
-            <ul>
-              <li>Ogni squadra compila il <b>Roster</b> e definisce 6 <b>Rotazioni</b> con gli ID.</li>
-              <li>Le statistiche disponibili per ogni giocatore sono: <b>ATK, BLK, DEF, SET, SERV</b>.</li>
-            </ul>
-            <h3>Risoluzione azioni (D6)</h3>
-            <ul>
-              <li>Per ogni gruppo d'azione (es. Attacco vs Muro/Difesa; Servizio vs Ricezione; Alzata), entrambe le parti tirano <b>1d6</b> e sommano la relativa statistica.</li>
-              <li><b>Attacco</b>: ATK (attaccante) + d6 contro BLK+DEF (avversario) + d6. Maggiore vince lo scambio; pareggio = rigiocata.</li>
-              <li><b>Servizio</b>: SERV (battitore) + d6 contro DEF (ricezione) + d6 → successo = pressione/punto; fallimento = sideout.</li>
-              <li><b>Alzata</b>: SET (alzatore) può dare un bonus situazionale (+1/+2) all'ATK del finalizzatore.</li>
-            </ul>
-            <h3>Rotazioni</h3>
-            <ul>
-              <li>Si gioca alternando l'attivazione tra le squadre. In caso di punto, la squadra al servizio ruota.</li>
-              <li>Le 6 posizioni di ciascuna rotazione devono essere popolate da ID validi.</li>
-            </ul>
-            <p class="warn">Nota: inserisci qui il tuo testo di regolamento integrale quando pronto. Questa è solo una traccia compatta.</p>
-          </div>
-        </details>
-      </section>
+    <div class="section-title">Dati giocatori</div>
+    <div class="toolbar">
+      <label class="btn alt">
+        Carica JSON
+        <input id="jsonInput" type="file" accept="application/json" hidden />
+      </label>
+      <label class="btn alt">
+        Carica Excel
+        <input id="xlsxInput" type="file" accept=".xlsx,.xls" hidden />
+      </label>
+      <button id="clearBtn" class="btn">Svuota tutto</button>
+      <span class="hint">Suggerito: usa <b>players.json</b> nella stessa cartella del sito → “Carica JSON”.</span>
     </div>
 
-    <div class="sticky-footer">
-      <span>Per usare online, carica questo file <em>insieme</em> a <code>players.json</code> nella stessa cartella (GitHub Pages / Netlify / hosting statico).</span>
+    <div class="card">
+      <h3>Stato dati</h3>
+      <div class="totals" id="dataStatus">
+        <span class="pill">Nessun database caricato</span>
+      </div>
     </div>
+
+    <div class="section-title">Roster (14)</div>
+    <div class="roster-grid" id="roster"></div>
+
+    <div class="section-title">Rotazioni (R1–R6) con posizioni</div>
+    <div class="rotation-grid" id="rotazioni"></div>
+
+    <div class="footer-space"></div>
   </div>
 
   <script>
-    // === Stato dati ===
-    let playersById = {}; // popolato da players.json
-    let byIdLower = new Map();
-    let byNameLower = new Map();
-    const dataStatusEl = document.getElementById('dataStatus');
+    // ======== Stato globale ========
+    let PLAYERS = {};  // { id: {ID, Name, ATK, BLK, DEF, SET, SERV} }
+    const ROSTER_SIZE = 14;
+    const ROTATIONS = 6;
+    const POSITIONS = ["FS","FC","FD","SLD","SLC","SLS"]; // ordine richiesto
 
-    async function loadPlayers() {
-      try {
-        const res = await fetch('./players.json', { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        if (data && data.playersById) {
-          playersById = data.playersById;
-          // indici rapidi: id e nome case-insensitive
-          byIdLower.clear();
-          byNameLower.clear();
-          Object.values(playersById).forEach(p => {
-            byIdLower.set(String(p.id).trim().toLowerCase(), p.id);
-            byNameLower.set(String(p.name).trim().toLowerCase(), p.id);
-          });
-          dataStatusEl.textContent = `Dati: ${Object.keys(playersById).length} giocatori`;
-          buildDatalist();
-        } else {
-          throw new Error('Formato players.json non valido');
-        }
-      } catch (err) {
-        dataStatusEl.textContent = 'Dati: non trovati (carica players.json)';
-        console.error('Errore caricamento players.json', err);
+    // Normalizza un input ID: "1" ~ "1.0"
+    function normalizeId(raw) {
+      if (!raw) return "";
+      let s = String(raw).trim().replace(",", ".");
+      const num = Number(s);
+      if (!Number.isNaN(num)) {
+        const asInt = Math.round(num);
+        if (Math.abs(num - asInt) < 1e-9) return String(asInt);
+        return String(num);
       }
+      return s;
     }
 
-    // === Datalist per autocompletamento ===
-    const DL_ID = 'players-list';
-    function buildDatalist(){
-      let dl = document.getElementById(DL_ID);
-      if (!dl) {
-        dl = document.createElement('datalist');
-        dl.id = DL_ID;
-        document.body.appendChild(dl);
-      }
-      dl.innerHTML = '';
-      // Aggiungi opzioni come "ID — Nome"
-      Object.values(playersById).slice(0, 5000).forEach(p => { // limite sicurezza
-        const opt = document.createElement('option');
-        opt.value = p.id;
-        opt.label = `${p.id} — ${p.name}`;
-        dl.appendChild(opt);
-      });
-    }
-
-    function resolveToPlayer(inputValue){
-      const raw = String(inputValue || '').trim();
-      if (!raw) return null;
-      // 1) match esatto ID
-      if (playersById[raw]) return playersById[raw];
-      const low = raw.toLowerCase();
-      // 2) match case-insensitive su ID
-      const idFromLower = byIdLower.get(low);
-      if (idFromLower && playersById[idFromLower]) return playersById[idFromLower];
-      // 3) match esatto su NOME (case-insensitive)
-      const idFromName = byNameLower.get(low);
-      if (idFromName && playersById[idFromName]) return playersById[idFromName];
-      // 4) match parziale in ID o Nome (primo trovato)
-      for (const p of Object.values(playersById)){
-        if (String(p.id).toLowerCase().includes(low) || String(p.name).toLowerCase().includes(low)) return p;
-      }
+    function getPlayer(idRaw) {
+      const id = normalizeId(idRaw);
+      if (!id) return null;
+      if (PLAYERS[id]) return PLAYERS[id];
+      if (PLAYERS[id + ".0"]) return PLAYERS[id + ".0"]; // prova variante
+      if (id.endsWith(".0")) { const base = id.slice(0, -2); if (PLAYERS[base]) return PLAYERS[base]; }
       return null;
     }
 
-    // === Roster UI ===
-    const rosterBody = document.getElementById('rosterBody');
-    const addRowBtn = document.getElementById('addRow');
-    const clearRosterBtn = document.getElementById('clearRoster');
+    function statOrZero(v){ return (v == null || isNaN(v)) ? 0 : Number(v); }
 
-    function makeRosterRow() {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><input class="idinput" type="text" list="${DL_ID}" placeholder="ID o Nome" /></td>
-        <td class="namebox" data-field="name">—</td>
-        <td><span class="stat" data-field="ATK">0</span></td>
-        <td><span class="stat" data-field="BLK">0</span></td>
-        <td><span class="stat" data-field="DEF">0</span></td>
-        <td><span class="stat" data-field="SET">0</span></td>
-        <td><span class="stat" data-field="SERV">0</span></td>
-      `;
-
-      const idInput = tr.querySelector('.idinput');
-      idInput.addEventListener('input', () => fillRosterRow(tr, idInput.value));
-      idInput.addEventListener('change', () => fillRosterRow(tr, idInput.value));
-      idInput.addEventListener('blur', () => fillRosterRow(tr, idInput.value));
-      idInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          const next = tr.nextElementSibling?.querySelector('.idinput');
-          if (next) next.focus();
-          fillRosterRow(tr, idInput.value);
-        }
-      });
-      return tr;
-    }
-
-    function fillRosterRow(tr, raw) {
-      const p = resolveToPlayer(raw);
-      setRow(tr, p);
-    }
-
-    function setRow(tr, p) {
-      tr.querySelector('[data-field="name"]').textContent = p ? p.name : '—';
-      ['ATK','BLK','DEF','SET','SERV'].forEach(k => {
-        tr.querySelector(`[data-field="${k}"]`).textContent = p ? p[k] : 0;
-      });
-    }
-
-    function addRosterRow() { rosterBody.appendChild(makeRosterRow()); }
-
-    function clearRoster() { rosterBody.innerHTML = ''; for (let i=0;i<12;i++) addRosterRow(); }
-
-    // === Rotazioni ===
-    const rotazioniEl = document.getElementById('rotazioni');
-    const POS_LABELS = ['FS','FC','FD','SLS','SLC','SLD'];
-
-    function makeRotCard(idx) {
-      const card = document.createElement('div');
-      card.className = 'rot-card';
-
-      const positionsHtml = POS_LABELS.map(label => `
-        <div class="pos">
-          <input class="idinput" type="text" list="${DL_ID}" placeholder="ID o Nome ${label}" />
-          <div class="blockline">
-            <div class="pill"><span>ATK/SET</span><b data-as="${label}">0/0</b></div>
-            <div class="pill"><span>BLK/DEF/SERV</span><b data-bds="${label}">0/0/0</b></div>
+    // ======== UI builders ========
+    function buildRoster(){
+      const root = document.getElementById("roster");
+      root.innerHTML = "";
+      for (let i=1; i<=ROSTER_SIZE; i++){
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <h3>Giocatore #${i}</h3>
+          <div class="pair">
+            <div>
+              <label>ID giocatore</label>
+              <input type="text" data-roster-id="${i}" placeholder="es. 1" />
+            </div>
+            <div>
+              <label>Nome</label>
+              <input type="text" data-roster-name="${i}" placeholder="—" disabled />
+            </div>
           </div>
-        </div>
-      `).join('');
-
-      card.innerHTML = `
-        <div class="rot-head"><h3>Rotazione ${idx+1}</h3>
-          <button class="mini-clear" title="Svuota" style="background:var(--chip);border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--text);cursor:pointer;font-size:12px;">Svuota</button>
-        </div>
-        ${positionsHtml}
-      `;
-
-      const inputs = card.querySelectorAll('.idinput');
-      inputs.forEach((inp) => {
-        const label = inp.placeholder.split(' ').pop(); // estrae FS/FC/...
-        const handler = () => updatePos(card, label, inp.value);
-        inp.addEventListener('input', handler);
-        inp.addEventListener('change', handler);
-        inp.addEventListener('blur', handler);
-        inp.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            const arr = Array.from(inputs);
-            const idx = arr.indexOf(inp);
-            const next = arr[idx+1];
-            if (next) next.focus();
-          }
-        });
-      });
-
-      card.querySelector('.mini-clear').addEventListener('click', () => {
-        inputs.forEach(inp => inp.value = '');
-        POS_LABELS.forEach(p => renderASBDS(card, p, null));
-      });
-      return card;
-    }
-
-    function updatePos(card, label, raw) {
-      const p = resolveToPlayer(raw);
-      renderASBDS(card, label, p);
-    }
-
-    function renderASBDS(card, label, p) {
-      const asEl = card.querySelector(`[data-as="${label}"]`);
-      const bdsEl = card.querySelector(`[data-bds="${label}"]`);
-      if (!asEl || !bdsEl) return;
-      if (!p) { asEl.textContent = '0/0'; bdsEl.textContent = '0/0/0'; return; }
-      asEl.textContent = `${p.ATK ?? 0}/${p.SET ?? 0}`;
-      bdsEl.textContent = `${p.BLK ?? 0}/${p.DEF ?? 0}/${p.SERV ?? 0}`;
-    }
-
-    function initRotazioni() {
-      rotazioniEl.innerHTML = '';
-      for (let i=0;i<6;i++) {
-        rotazioniEl.appendChild(makeRotCard(i));
+          <div style="margin-top:10px">
+            <table>
+              <thead><tr><th>ATK</th><th>BLK</th><th>DEF</th><th>SET</th><th>SERV</th></tr></thead>
+              <tbody><tr>
+                <td data-roster-atk="${i}">—</td>
+                <td data-roster-blk="${i}">—</td>
+                <td data-roster-def="${i}">—</td>
+                <td data-roster-set="${i}">—</td>
+                <td data-roster-serv="${i}">—</td>
+              </tr></tbody>
+            </table>
+          </div>
+        `;
+        root.appendChild(card);
       }
     }
 
-    // === Boot ===
-    addRowBtn.addEventListener('click', addRosterRow);
-    clearRosterBtn.addEventListener('click', clearRoster);
+    function buildRotations(){
+      const root = document.getElementById("rotazioni");
+      root.innerHTML = "";
+      for (let r=1; r<=ROTATIONS; r++){
+        const card = document.createElement("div");
+        card.className = "card";
 
-    clearRoster();
-    initRotazioni();
-    loadPlayers();
+        // Selects solo dal roster per 6 posizioni
+        let selects = "";
+        for (const pos of POSITIONS){
+          selects += `
+            <div>
+              <label>${pos} (ID dal roster)</label>
+              <select data-rot-pos="${r}-${pos}"><option value="">—</option></select>
+            </div>`;
+        }
 
-    // Helper debug veloce in console
-    window.__testFetch = () => fetch('./players.json').then(r=>r.text()).then(t=>{console.log('players.json:', t.slice(0,200)+'...')}).catch(console.error);
+        // Box per posizione: ATK/SET e BLK/DEF/SERV
+        let posCellsA = "";
+        let posCellsB = "";
+        for (const pos of POSITIONS){
+          posCellsA += `<div class="poscell"><b>${pos}</b><span data-rot-aks-pos="${r}-${pos}">—</span></div>`;
+          posCellsB += `<div class="poscell"><b>${pos}</b><span data-rot-bds-pos="${r}-${pos}">—</span></div>`;
+        }
+
+        card.innerHTML = `
+          <h3>Rotazione ${r} <span class="pill">R${r}</span></h3>
+          <div class="pair" style="grid-template-columns:repeat(3,1fr); gap:10px">${selects}</div>
+
+          <div class="kpi">
+            <div class="k">
+              <b>Totale ATK/SET (R${r})</b>
+              <div class="v success" data-rot-aks-total="${r}">0</div>
+            </div>
+            <div class="k">
+              <b>Totale BLK/DEF/SERV (R${r})</b>
+              <div class="v warn" data-rot-bds-total="${r}">0</div>
+            </div>
+          </div>
+
+          <div class="pair" style="margin-top:10px">
+            <div class="k">
+              <b>ATK/SET per posizione</b>
+              <div class="posgrid">${posCellsA}</div>
+            </div>
+            <div class="k">
+              <b>BLK/DEF/SERV per posizione</b>
+              <div class="posgrid">${posCellsB}</div>
+            </div>
+          </div>
+        `;
+        root.appendChild(card);
+      }
+    }
+
+    // ======== Helpers ========
+    function currentRosterEntries(){
+      // Restituisce [{id,name}] per le righe roster compilate e valide
+      const out = [];
+      for (let i=1; i<=ROSTER_SIZE; i++){
+        const id = document.querySelector(`[data-roster-id="${i}"]`).value;
+        const p = getPlayer(id);
+        if (p){ out.push({ id: normalizeId(id), name: p.Name || ("Giocatore "+id) }); }
+      }
+      // dedup sugli ID
+      const seen = new Set();
+      return out.filter(e=>{ if (seen.has(e.id)) return false; seen.add(e.id); return true; });
+    }
+
+    function refreshRotationOptions(){
+      const entries = currentRosterEntries();
+      const optsHtml = ["<option value=\"\">—</option>", ...entries.map(e=>`<option value="${e.id}">[${e.id}] ${escapeHtml(e.name)}</option>`)].join("");
+      for (let r=1; r<=ROTATIONS; r++){
+        for (const pos of POSITIONS){
+          const sel = document.querySelector(`[data-rot-pos="${r}-${pos}"]`);
+          const prev = sel.value;
+          sel.innerHTML = optsHtml;
+          // se la selezione precedente è ancora valida, mantienila
+          if (entries.some(e=>e.id === prev)) sel.value = prev; else sel.value = "";
+          sel.disabled = entries.length === 0;
+        }
+        recomputeRotation(r);
+      }
+    }
+
+    function escapeHtml(s){
+      return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"','&quot;').replaceAll("'","&#39;");
+    }
+
+    // ======== Event wiring ========
+    function wireRoster(){
+      for (let i=1; i<=ROSTER_SIZE; i++){
+        const input = document.querySelector(`[data-roster-id="${i}"]`);
+        input.addEventListener("input", () => { fillRosterLine(i, input.value); refreshRotationOptions(); });
+      }
+    }
+
+    function fillRosterLine(i, rawId){
+      const p = getPlayer(rawId);
+      const nameEl = document.querySelector(`[data-roster-name="${i}"]`);
+      const el = {
+        atk: document.querySelector(`[data-roster-atk="${i}"]`),
+        blk: document.querySelector(`[data-roster-blk="${i}"]`),
+        def: document.querySelector(`[data-roster-def="${i}"]`),
+        set: document.querySelector(`[data-roster-set="${i}"]`),
+        serv: document.querySelector(`[data-roster-serv="${i}"]`),
+      };
+      if (!p){
+        nameEl.value = "";
+        Object.values(el).forEach(td => td.textContent = "—");
+        return;
+      }
+      nameEl.value = p.Name ?? "";
+      el.atk.textContent = (p.ATK ?? 0);
+      el.blk.textContent = (p.BLK ?? 0);
+      el.def.textContent = (p.DEF ?? 0);
+      el.set.textContent = (p.SET ?? 0);
+      el.serv.textContent = (p.SERV ?? 0);
+    }
+
+    function wireRotations(){
+      for (let r=1; r<=ROTATIONS; r++){
+        for (const pos of POSITIONS){
+          const sel = document.querySelector(`[data-rot-pos="${r}-${pos}"]`);
+          sel.addEventListener("change", () => recomputeRotation(r));
+        }
+      }
+    }
+
+    function recomputeRotation(r){
+      let totalA = 0, totalB = 0;
+      for (const pos of POSITIONS){
+        const sel = document.querySelector(`[data-rot-pos="${r}-${pos}"]`);
+        const pl = getPlayer(sel.value);
+        const a = pl ? (statOrZero(pl.ATK) + statOrZero(pl.SET)) : 0;
+        const b = pl ? (statOrZero(pl.BLK) + statOrZero(pl.DEF) + statOrZero(pl.SERV)) : 0;
+        totalA += a; totalB += b;
+        const cellA = document.querySelector(`[data-rot-aks-pos="${r}-${pos}"]`);
+        const cellB = document.querySelector(`[data-rot-bds-pos="${r}-${pos}"]`);
+        cellA.textContent = a ? a : "—";
+        cellB.textContent = b ? b : "—";
+      }
+      document.querySelector(`[data-rot-aks-total="${r}"]`).textContent = totalA;
+      document.querySelector(`[data-rot-bds-total="${r}"]`).textContent = totalB;
+    }
+
+    function setDataStatus(msg, ok=false){
+      const box = document.getElementById("dataStatus");
+      box.innerHTML = "";
+      const pill = document.createElement("span");
+      pill.className = "pill";
+      pill.innerHTML = ok ? `<b>OK</b> • ${msg}` : msg;
+      box.appendChild(pill);
+      if (ok){
+        const total = Object.keys(PLAYERS).length;
+        const pill2 = document.createElement("span");
+        pill2.className = "pill";
+        pill2.innerHTML = `<b>${total}</b> giocatori caricati`;
+        box.appendChild(pill2);
+      }
+    }
+
+    // ======== Caricamento JSON / Excel ========
+    async function loadFromJsonFile(file){
+      try{
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if (!data || typeof data !== "object") throw new Error("Formato JSON non valido");
+        PLAYERS = data;
+        setDataStatus(`Database (JSON) caricato`, true);
+        refreshRotationOptions();
+      }catch(err){ console.error(err); setDataStatus("Errore nel JSON (controlla file)"); }
+    }
+
+    async function loadFromExcelFile(file){
+      try{
+        const arrayBuffer = await file.arrayBuffer();
+        const wb = XLSX.read(arrayBuffer, { type: "array" });
+        let sheetName = wb.SheetNames[0];
+        const chosen = wb.SheetNames.find(s=>{ const sl=s.toLowerCase(); return sl.includes("all") && (sl.includes("player") || sl.includes("giocator")); });
+        if (chosen) sheetName = chosen;
+        const ws = wb.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(ws);
+        function findKey(obj, names){
+          const keys = Object.keys(obj);
+          for (const n of names){ const k = keys.find(k=> k.toLowerCase().trim() === n); if (k) return k; }
+          for (const n of names){ const k = keys.find(k=> k.toLowerCase().includes(n)); if (k) return k; }
+          return null;
+        }
+        const out = {};
+        for (const row of rows){
+          const idK  = findKey(row, ["id","player_id","gid","code","codice","id_giocatore"]) || Object.keys(row)[0];
+          const nmK  = findKey(row, ["name","player","giocatore","cognome","nome","player_name"]) || Object.keys(row)[1];
+          const atkK = findKey(row, ["atk","att","attack","attacco","deltaatt","delta_atk"]);
+          const blkK = findKey(row, ["blk","block","blocco"]);
+          const defK = findKey(row, ["def","defense","difesa"]);
+          const setK = findKey(row, ["set","ass","assist","palleggio"]);
+          const srvK = findKey(row, ["serv","serve","servizio"]);
+          const idRaw= row[idK];
+          if (idRaw==null || idRaw==="") continue;
+          const id = normalizeId(idRaw);
+          out[id] = {
+            ID: id,
+            Name: String(row[nmK] ?? "").trim(),
+            ATK: row[atkK]!=null ? Number(row[atkK]) : 0,
+            BLK: row[blkK]!=null ? Number(row[blkK]) : 0,
+            DEF: row[defK]!=null ? Number(row[defK]) : 0,
+            SET: row[setK]!=null ? Number(row[setK]) : 0,
+            SERV: row[srvK]!=null ? Number(row[srvK]) : 0,
+          };
+        }
+        PLAYERS = out;
+        setDataStatus(`Database (Excel) caricato da foglio: ${sheetName}`, true);
+        refreshRotationOptions();
+      }catch(err){ console.error(err); setDataStatus("Errore nel parsing dell’Excel"); }
+    }
+
+    // ======== Clear ========
+    function clearAll(){
+      // svuota roster
+      for (let i=1; i<=ROSTER_SIZE; i++){
+        document.querySelector(`[data-roster-id="${i}"]`).value = "";
+        document.querySelector(`[data-roster-name="${i}"]`).value = "";
+        fillRosterLine(i, "");
+      }
+      // svuota selezioni rotazioni
+      for (let r=1; r<=ROTATIONS; r++){
+        for (const pos of POSITIONS){
+          const sel = document.querySelector(`[data-rot-pos="${r}-${pos}"]`);
+          sel.value = "";
+        }
+        recomputeRotation(r);
+      }
+      refreshRotationOptions();
+    }
+
+    // ======== Init ========
+    buildRoster();
+    buildRotations();
+    wireRoster();
+    wireRotations();
+    setDataStatus("Nessun database caricato");
+    refreshRotationOptions(); // disabilita selettori finché non c'è roster
+
+    document.getElementById("jsonInput").addEventListener("change", (e)=>{
+      const f = e.target.files?.[0]; if (f) loadFromJsonFile(f);
+    });
+    document.getElementById("xlsxInput").addEventListener("change", (e)=>{
+      const f = e.target.files?.[0]; if (f) loadFromExcelFile(f);
+    });
+    document.getElementById("clearBtn").addEventListener("click", clearAll);
   </script>
 </body>
-  </html>
+</html>
