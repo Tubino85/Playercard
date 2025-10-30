@@ -578,11 +578,106 @@ document.addEventListener("change", (e) => {
   cascadeFrom(r, pos, val);
 });
 </script>
+<script>
+// === [ADD] Auto-composizione R1: migliori per posizione ===
+
+// Ordine logico di rotazione (già usato altrove)
+const ROT_ORDER = ["FS","FC","FD","SLD","SLC","SLS"];
+
+// comparator lessico-decrescente su tuple numeriche
+function betterTuple(a, b){
+  for (let i=0; i<Math.max(a.length,b.length); i++){
+    const av = a[i] ?? -Infinity, bv = b[i] ?? -Infinity;
+    if (av > bv) return true;
+    if (av < bv) return false;
+  }
+  return false;
+}
+
+// calcola la "tuple score" in base alla posizione
+function scoreTupleForPos(p, pos){
+  const ATK = Number(p.ATK)||0, BLK = Number(p.BLK)||0, DEF = Number(p.DEF)||0,
+        SET = Number(p.SET)||0, SERV = Number(p.SERV)||0;
+  switch(pos){
+    case "FS": case "FC": case "FD":
+      // primarie: ATK+BLK; tie: ATK, poi BLK
+      return [ATK+BLK, ATK, BLK];
+    case "SLD":
+      // primarie: SERV+SET; tie: SERV, poi SET
+      return [SERV+SET, SERV, SET];
+    case "SLC": case "SLS":
+      // primaria: DEF; tie: ATK, poi BLK
+      return [DEF, ATK, BLK];
+    default:
+      return [0];
+  }
+}
+
+// restituisce i candidati dal roster per quella posizione, filtrando vincoli
+function candidatesForPos(pos){
+  const entries = rosterEntries();                   // solo gli ID presenti nel roster
+  const selR1 = document.querySelector(`[data-rot="1-${pos}"]`);
+  if (!selR1) return [];
+  return entries
+    .map(e => ({ id: e.id, p: getPlayer(e.id) }))
+    .filter(x => !!x.p)
+    .filter(x => {
+      // R/L non ammessi davanti
+      if (FRONT_POS.has(pos) && roleBlockedInFront(x.p)) return false;
+      // deve esistere l'opzione nella select (nel roster attuale)
+      const hasOpt = Array.from(selR1.options).some(o => o.value === x.id);
+      return hasOpt;
+    })
+    .map(x => ({ id: x.id, p: x.p, tup: scoreTupleForPos(x.p, pos) }))
+    .sort((a,b) => betterTuple(b.tup, a.tup) ? 1 : betterTuple(a.tup, b.tup) ? -1 : 0);
+}
+
+// esegue l’auto-composizione R1 e poi innesca la tua auto-rotazione per R2–R6
+function autoComposeR1(){
+  const used = new Set();
+  for (const pos of ROT_ORDER){
+    const sel = document.querySelector(`[data-rot="1-${pos}"]`);
+    if (!sel) continue;
+
+    // scegli il primo candidato non ancora usato
+    const cand = candidatesForPos(pos).find(c => !used.has(c.id));
+    if (cand){
+      sel.value = cand.id;
+      used.add(cand.id);
+    } else {
+      sel.value = ""; // se nulla di valido, lascia vuoto
+    }
+  }
+  enforceNoDuplicates(1);
+  updateRotation(1);
+
+  // se esiste la funzione di auto-rotazione da R1, richiama per riempire R2–R6
+  if (typeof autoFillFromR1 === "function") autoFillFromR1();
+
+  showRuleMsg("R1 auto-composta: migliori stat per posizione (R/L esclusi in FS/FC/FD).", "warn");
+}
+
+// UI: aggiungo un pulsante sopra alle rotazioni senza modificare l'HTML originale
+(function injectAutoR1Button(){
+  const rotations = document.getElementById("rotations");
+  if (!rotations) return;
+  const bar = document.createElement("div");
+  bar.className = "toolbar";
+  const btn = document.createElement("button");
+  btn.className = "btn";
+  btn.textContent = "Auto R1 (migliori stat)";
+  btn.addEventListener("click", autoComposeR1);
+  bar.appendChild(btn);
+  rotations.parentNode.insertBefore(bar, rotations); // inserito subito sopra le rotazioni
+})();
+</script>
+  
 <!-- Fallback embedded: incolla qui il tuo players.json per funzionare anche in file:// -->
 <script id="players-embedded" type="application/json">
 </script>
 
 </body>
 </html>
+
 
 
