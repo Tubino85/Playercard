@@ -87,8 +87,10 @@
         Carica Excel
         <input id="xlsxInput" type="file" accept=".xlsx,.xls" hidden />
       </label>
+      <input id="jsonUrl" type="text" placeholder="players.json" style="max-width:240px" />
+      <button id="loadUrlBtn" class="btn">Carica da URL</button>
       <button id="clearBtn" class="btn">Svuota tutto</button>
-      <span class="hint">Suggerito: usa <b>players.json</b> nella stessa cartella del sito → “Carica JSON”.</span>
+      <span class="hint">Se il file è nella <b>stessa cartella</b> (es. GitHub Pages), basta "players.json". Se stai aprendo il file come <code>file://</code>, l'auto-caricamento non è consentito dal browser: usa i pulsanti Carica JSON/Excel.</span>
     </div>
 
     <div class="card">
@@ -112,7 +114,7 @@
     let PLAYERS = {};  // { id: {ID, Name, ATK, BLK, DEF, SET, SERV} }
     const ROSTER_SIZE = 14;
     const ROTATIONS = 6;
-    const POSITIONS = ["FS","FC","FD","SLD","SLC","SLS"]; // ordine richiesto
+    const POSITIONS = ["FS","FC","FD","SLS","SLC","SLD"]; // SLS e SLD invertite // ordine richiesto
 
     // Normalizza un input ID: "1" ~ "1.0"
     function normalizeId(raw) {
@@ -304,9 +306,24 @@
     }
 
     function recomputeRotation(r){
-      let totalA = 0, totalB = 0;
+      let tATK = 0, tSET = 0, tBLK = 0, tDEF = 0, tSERV = 0;
       for (const pos of POSITIONS){
         const sel = document.querySelector(`[data-rot-pos="${r}-${pos}"]`);
+        const pl = getPlayer(sel.value);
+        let aATK = 0, aSET = 0, bBLK = 0, bDEF = 0, bSERV = 0;
+        if (pl){
+          aATK = statOrZero(pl.ATK); aSET = statOrZero(pl.SET);
+          bBLK = statOrZero(pl.BLK); bDEF = statOrZero(pl.DEF); bSERV = statOrZero(pl.SERV);
+          tATK += aATK; tSET += aSET; tBLK += bBLK; tDEF += bDEF; tSERV += bSERV;
+        }
+        const cellA = document.querySelector(`[data-rot-aks-pos="${r}-${pos}"]`);
+        const cellB = document.querySelector(`[data-rot-bds-pos="${r}-${pos}"]`);
+        cellA.textContent = pl ? `${aATK}/${aSET}` : "—/—";
+        cellB.textContent = pl ? `${bBLK}/${bDEF}/${bSERV}` : "—/—/—";
+      }
+      document.querySelector(`[data-rot-aks-total="${r}"]`).textContent = `${tATK}/${tSET}`;
+      document.querySelector(`[data-rot-bds-total="${r}"]`).textContent = `${tBLK}/${tDEF}/${tSERV}`;
+    }-${pos}"]`);
         const pl = getPlayer(sel.value);
         const a = pl ? (statOrZero(pl.ATK) + statOrZero(pl.SET)) : 0;
         const b = pl ? (statOrZero(pl.BLK) + statOrZero(pl.DEF) + statOrZero(pl.SERV)) : 0;
@@ -391,6 +408,35 @@
       }catch(err){ console.error(err); setDataStatus("Errore nel parsing dell’Excel"); }
     }
 
+    // ======== Caricamento da URL & Auto-load ========
+    async function loadFromJsonUrl(url){
+      try{
+        const resp = await fetch(url, { cache: 'no-cache' });
+        if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        if (!data || typeof data !== 'object') throw new Error('Formato JSON non valido');
+        PLAYERS = data;
+        setDataStatus(`Database (JSON) da URL: ${url}`, true);
+        refreshRotationOptions();
+      }catch(err){
+        console.error(err);
+        setDataStatus(`Impossibile caricare ${url} (${err.message}). Se apri il file in locale (file://), usa un server (es. VS Code Live Server) o pubblica su GitHub Pages. Verifica anche nome e MAIUSCOLE/minuscole del file.`);
+      }
+    }
+
+    async function tryAutoLoadDefaultJson(){
+      try{
+        const url = 'players.json';
+        const resp = await fetch(url, { cache: 'no-cache' });
+        if(resp.ok){
+          const data = await resp.json();
+          PLAYERS = data;
+          setDataStatus(`Database (JSON) caricato da ${url}`, true);
+          refreshRotationOptions();
+        }
+      }catch(e){ /* silenzioso: l'utente può usare i pulsanti */ }
+    }
+
     // ======== Clear ========
     function clearAll(){
       // svuota roster
@@ -416,7 +462,12 @@
     wireRoster();
     wireRotations();
     setDataStatus("Nessun database caricato");
-    refreshRotationOptions(); // disabilita selettori finché non c'è roster
+    refreshRotationOptions();
+    if (location.protocol === 'file:') {
+      setDataStatus("Apertura locale (file://): auto-caricamento non consentito dal browser. Usa 'Carica JSON' o 'Carica Excel'.");
+    } else {
+      tryAutoLoadDefaultJson();
+    } // disabilita selettori finché non c'è roster
 
     document.getElementById("jsonInput").addEventListener("change", (e)=>{
       const f = e.target.files?.[0]; if (f) loadFromJsonFile(f);
@@ -425,6 +476,16 @@
       const f = e.target.files?.[0]; if (f) loadFromExcelFile(f);
     });
     document.getElementById("clearBtn").addEventListener("click", clearAll);
+    document.getElementById("loadUrlBtn").addEventListener("click", ()=>{
+      const url = (document.getElementById("jsonUrl").value || 'players.json').trim();
+      loadFromJsonUrl(url);
+    });
+    document.getElementById("jsonUrl").addEventListener("keydown", (e)=>{
+      if(e.key === 'Enter'){
+        const url = (document.getElementById("jsonUrl").value || 'players.json').trim();
+        loadFromJsonUrl(url);
+      }
+    });
   </script>
 </body>
 </html>
